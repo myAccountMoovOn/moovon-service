@@ -1,0 +1,75 @@
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
+  OneToMany,
+} from 'typeorm';
+import { Customer } from '../../customers/entities/customer.entity';
+import { Service } from '../../services-master/entities/service.entity';
+import { Payment } from '../../payments/entities/payment.entity';
+import { NotificationLog } from '../../notifications/entities/notification-log.entity';
+
+export enum PaymentStatus {
+  PAID = 'paid',
+  PENDING = 'pending',
+  PARTIAL = 'partial',
+}
+
+@Entity('subscriptions')
+export class Subscription {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column({ name: 'customer_id', type: 'uuid' })
+  customerId: string;
+
+  @ManyToOne(() => Customer, (customer) => customer.subscriptions, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'customer_id' })
+  customer?: Customer;
+
+  @Column({ name: 'service_id', type: 'uuid' })
+  serviceId: string;
+
+  @ManyToOne(() => Service, (service) => service.subscriptions)
+  @JoinColumn({ name: 'service_id' })
+  service?: Service;
+
+  @Column({ name: 'start_date', type: 'date' })
+  startDate: string;
+
+  @Column({ name: 'end_date', type: 'date', nullable: true })
+  endDate: string | null;
+
+  @Column({ type: 'decimal', precision: 10, scale: 2 })
+  amount: number;
+
+  @Column({
+    name: 'payment_status',
+    type: 'enum',
+    enum: PaymentStatus,
+    default: PaymentStatus.PENDING,
+  })
+  paymentStatus: PaymentStatus;
+
+  @Column({ name: 'auto_renewal', type: 'boolean', default: false })
+  autoRenewal: boolean;
+
+  @Column({ type: 'text', nullable: true })
+  notes: string | null;
+
+  @CreateDateColumn({ name: 'created_at' })
+  createdAt: Date;
+
+  @UpdateDateColumn({ name: 'updated_at' })
+  updatedAt: Date;
+
+  @OneToMany(() => Payment, (payment) => payment.subscription, { cascade: true })
+  payments?: Payment[];
+
+  @OneToMany(() => NotificationLog, (log) => log.subscription)
+  notificationLogs?: NotificationLog[];
+}

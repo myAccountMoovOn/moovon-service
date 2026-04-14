@@ -1,0 +1,117 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Service } from './entities/service.entity';
+import { CreateServiceDto, UpdateServiceDto } from './dto/service.dto';
+
+@Injectable()
+export class ServicesMasterService {
+  constructor(
+    @InjectRepository(Service)
+    private readonly serviceRepo: Repository<Service>,
+  ) {}
+
+  async create(dto: CreateServiceDto) {
+    const service = this.serviceRepo.create(dto);
+    return this.serviceRepo.save(service);
+  }
+
+  async findAll(
+    page: number = 1,
+    limit: number = 10,
+    search?: string,
+    isActive?: boolean,
+    pricingType?: string,
+    durationType?: string,
+    category?: string,
+    from?: string,
+    to?: string,
+  ) {
+    const query = this.serviceRepo.createQueryBuilder('service');
+
+    if (search) {
+      query.andWhere(
+        '(service.name ILIKE :search OR service.category ILIKE :search)',
+        { search: `%${search}%` },
+      );
+    }
+
+    if (isActive !== undefined) {
+      query.andWhere('service.isActive = :isActive', { isActive });
+    }
+
+    if (pricingType) {
+      query.andWhere('service.pricingType = :pricingType', { pricingType });
+    }
+
+    if (durationType) {
+      query.andWhere('service.durationType = :durationType', { durationType });
+    }
+
+    if (category) {
+      query.andWhere('service.category ILIKE :category', {
+        category: `%${category}%`,
+      });
+    }
+
+    if (from && to) {
+      const fromDate = new Date(from);
+      const toDate = new Date(to);
+      toDate.setUTCHours(23, 59, 59, 999);
+      query.andWhere('service.createdAt BETWEEN :from AND :to', { from: fromDate, to: toDate });
+    }
+
+    query.orderBy('service.createdAt', 'DESC');
+    query.skip((page - 1) * limit).take(limit);
+
+    const [data, total] = await query.getManyAndCount();
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  async findOne(id: string) {
+    const service = await this.serviceRepo.findOne({ where: { id } });
+    if (!service) {
+      throw new NotFoundException(`Service with ID ${id} not found`);
+    }
+    return service;
+  }
+
+  async update(id: string, dto: UpdateServiceDto) {
+    const service = await this.findOne(id);
+    Object.assign(service, dto);
+    return this.serviceRepo.save(service);
+  }
+
+  async remove(id: string) {
+    const service = await this.serviceRepo.findOne({
+      where: { id },
+      relations: ['subscriptions'],
+    });
+
+    if (!service) {
+      throw new NotFoundException(`Service with ID ${id} not found`);
+    }
+
+    if (service.subscriptions && service.subscriptions.length > 0) {
+      service.isActive = false;
+      await this.serviceRepo.save(service);
+      return { 
+        message: 'Service deactivated (soft delete) because it has existing subscriptions.',
+        deleted: false 
+      };
+    }
+
+    await this.serviceRepo.remove(service);
+    return { 
+      message: 'Service permanently deleted.',
+      deleted: true 
+    };
+  }
+}
