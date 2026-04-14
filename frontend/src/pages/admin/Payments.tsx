@@ -312,7 +312,7 @@ const Payments: React.FC = () => {
                         <Text strong style={{ fontSize: '16px', color: 'var(--color-primary)' }}>₹{item.amount.toLocaleString()}</Text>
                         <Tag 
                             color={item.status === PaymentRecordStatus.SUCCESS ? 'success' : 'processing'} 
-                            size="small"
+                            // size="small"
                             style={{ fontSize: '10px', margin: 0, borderRadius: '4px' }}
                         >
                             {item.status.toUpperCase()}
