@@ -1,7 +1,7 @@
 import axiosInstance from './axiosInstance';
 
 export const generatePaymentLink = async (subscriptionId: string) => {
-  const response = await axiosInstance.post<{ paymentLinkUrl: string }>(
+  const response = await axiosInstance.post<{ data: { paymentLinkUrl: string } }>(
     `/payments/generate-link/${subscriptionId}`
   );
   return response.data.data; // Extracting data from { success, data, message }
