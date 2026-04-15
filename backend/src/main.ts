@@ -27,23 +27,22 @@ async function bootstrap(): Promise<void> {
   // CORS
   const frontendUrl = configService.get<string>('FRONTEND_URL', 'http://localhost:5173');
   app.enableCors({
-    // origin: [frontendUrl, 'http://localhost:5173'],
     origin: '*',
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'ngrok-skip-browser-warning'], // ← fix 1
     credentials: false,
   });
 
   app.use((req: Request, res: Response, next: NextFunction) => {
-  res.setHeader('ngrok-skip-browser-warning', 'true');
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
-  }
-  next();
-});
+    res.setHeader('ngrok-skip-browser-warning', 'true');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, ngrok-skip-browser-warning'); // ← fix 2
+    if (req.method === 'OPTIONS') {
+      return res.sendStatus(200);
+    }
+    next();
+  });
 
   // Global prefix
   app.setGlobalPrefix('api/v1');
