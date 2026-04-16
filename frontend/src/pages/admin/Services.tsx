@@ -35,9 +35,9 @@ import {
   StopOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
-import { useServices, useDeleteService } from '../../hooks/useApi';
+import { useServices, useDeleteService, useCategories } from '../../hooks/useApi';
 import type { Service } from '../../types';
-import { PricingType, DurationType } from '../../types';
+import { PricingType } from '../../types';
 import axiosInstance from '../../api/axiosInstance';
 
 const { Title, Text } = Typography;
@@ -53,11 +53,14 @@ const Services: React.FC = () => {
   
   // Filters
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string | undefined>();
+  const [typeFilter, setTypeFilter] = useState<string | undefined>();
   const [period, setPeriod] = useState<string>('all');
   const [customRange, setCustomRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [form] = Form.useForm();
 
   const isMobile = !screens.md;
@@ -89,14 +92,18 @@ const Services: React.FC = () => {
     limit: 10, 
     search,
     isActive: statusFilter === 'active' ? true : (statusFilter === 'inactive' ? false : undefined),
+    categoryId: categoryFilter,
+    pricingType: typeFilter,
     ...dateParams
   });
+
+  const { data: categories } = useCategories();
 
   const deleteMutation = useDeleteService();
 
   const columns = [
     {
-      title: 'Service Name',
+      title: 'Product/Service Name',
       dataIndex: 'name',
       key: 'name',
       fixed: 'left' as const,
@@ -104,9 +111,10 @@ const Services: React.FC = () => {
     },
     {
       title: 'Category',
-      dataIndex: 'category',
+      dataIndex: 'categoryId',
       key: 'category',
       responsive: ['lg' as const],
+      render: (_: string, record: Service) => <Tag variant="solid" color="blue">{record.categoryRef?.name || record.category || 'N/A'}</Tag>
     },
     {
       title: 'Type',
@@ -114,24 +122,8 @@ const Services: React.FC = () => {
       responsive: ['sm' as const],
       render: (type: string) => (
         <Tag color={type === 'custom' ? 'purple' : 'blue'}>
-          {type === 'custom' ? 'SUBSCRIPTION' : type.toUpperCase()}
+          {type === 'custom' ? 'SUBSCRIPTION' : type?.toUpperCase() || 'N/A'}
         </Tag>
-      ),
-    },
-    {
-      title: 'Duration',
-      dataIndex: 'durationType',
-      responsive: ['md' as const],
-      render: (text: string) => text ? text.replace('_', ' ').toUpperCase() : '-',
-    },
-    {
-      title: 'Base Price',
-      dataIndex: 'basePrice',
-      width: 120,
-      render: (val: number) => (
-        <Text strong style={{ whiteSpace: 'nowrap' }}>
-          ₹ {Number(val).toLocaleString()}
-        </Text>
       ),
     },
     {
@@ -190,6 +182,7 @@ const Services: React.FC = () => {
   ];
 
   const handleSave = async (values: any) => {
+    setIsSubmitting(true);
     try {
       if (editingId) {
         await axiosInstance.patch(`/services/${editingId}`, values);
@@ -204,6 +197,8 @@ const Services: React.FC = () => {
       refetch();
     } catch (err: any) {
       message.error('Failed to save service');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -217,8 +212,6 @@ const Services: React.FC = () => {
     }
   };
 
-  const currentPricingType = Form.useWatch('pricingType', form);
-
   return (
     <div style={{ padding: isMobile ? '0' : '0 8px' }}>
       <Flex 
@@ -229,7 +222,7 @@ const Services: React.FC = () => {
         style={{ marginBottom: 24 }}
       >
         <Flex vertical gap={4}>
-          <Title level={2} style={{ margin: 0, fontSize: 'clamp(22px, 5vw, 32px)' }}>Services Catalog</Title>
+          <Title level={2} style={{ margin: 0, fontSize: 'clamp(22px, 5vw, 32px)' }}>Product and Service Catalog</Title>
         </Flex>
         
         <Flex gap={8} wrap="wrap" style={{ width: isMobile ? '100%' : 'auto' }}>
@@ -240,7 +233,7 @@ const Services: React.FC = () => {
             onClick={() => { setEditingId(null); form.resetFields(); setIsModalOpen(true); }}
             block={isMobile}
           >
-            New Service
+            New Product/Service
           </Button>
         </Flex>
       </Flex>
@@ -265,13 +258,44 @@ const Services: React.FC = () => {
               value={statusFilter} 
               onChange={setStatusFilter} 
               size="middle"
-              style={{ width: isMobile ? '100%' : 150 }}
-              placeholder="All Services"
+              style={{ width: isMobile ? '100%' : 130 }}
+              placeholder="Status"
               styles={{ popup: { root: { borderRadius: '8px' } } }}
               options={[
-                { label: 'All Services', value: 'all' },
+                { label: 'All Status', value: 'all' },
                 { label: 'Active', value: 'active' },
                 { label: 'Inactive', value: 'inactive' }
+              ]}
+            />
+
+            <Select 
+              value={categoryFilter} 
+              onChange={setCategoryFilter} 
+              size="middle"
+              style={{ width: isMobile ? '100%' : 150 }}
+              placeholder="All Categories"
+              allowClear
+              showSearch
+              optionFilterProp="label"
+              styles={{ popup: { root: { borderRadius: '8px' } } }}
+              options={[
+                { label: 'All Categories', value: undefined },
+                ...(categories?.map(c => ({ label: c.name, value: c.id })) || [])
+              ]}
+            />
+
+            <Select 
+              value={typeFilter} 
+              onChange={setTypeFilter} 
+              size="middle"
+              style={{ width: isMobile ? '100%' : 140 }}
+              placeholder="All Types"
+              allowClear
+              styles={{ popup: { root: { borderRadius: '8px' } } }}
+              options={[
+                { label: 'All Types', value: undefined },
+                { label: 'Fixed Rate', value: PricingType.FIXED },
+                { label: 'Subscription', value: PricingType.CUSTOM }
               ]}
             />
 
@@ -340,7 +364,7 @@ const Services: React.FC = () => {
                 <Flex justify="space-between" align="center">
                   <Flex vertical gap={0}>
                     <Text strong style={{ fontSize: '14px' }}>{item.name}</Text>
-                    <Tag color="cyan" style={{ fontSize: '10px', width: 'fit-content', padding: '0 4px' }}>{item.category}</Tag>
+                    <Tag color="cyan" style={{ fontSize: '10px', width: 'fit-content', padding: '0 4px' }}>{item.categoryRef?.name || item.category || 'N/A'}</Tag>
                   </Flex>
                   <Switch 
                     checked={item.isActive} 
@@ -349,31 +373,15 @@ const Services: React.FC = () => {
                     unCheckedChildren={<StopOutlined />}
                   />
                 </Flex>
-
+                
+                <Flex gap={4}>
+                   <Tag color={item.pricingType === 'custom' ? 'purple' : 'blue'} style={{ fontSize: '10px' }}>
+                      {item.pricingType === 'custom' ? 'SUBSCRIPTION' : item.pricingType?.toUpperCase()}
+                   </Tag>
+                </Flex>
                 <Divider style={{ margin: '4px 0' }} />
 
-                <Flex justify="space-between" align="center">
-                  <Flex vertical gap={2}>
-                    <Text type="secondary" style={{ fontSize: '11px' }}><SettingOutlined /> MODEL</Text>
-                    <Tag color={item.pricingType === 'custom' ? 'purple' : 'blue'} style={{ width: 'fit-content' }}>
-                       {item.pricingType === 'custom' ? 'SUBSCRIPTION' : item.pricingType.toUpperCase()}
-                    </Tag>
-                  </Flex>
-                  <Flex vertical gap={2} style={{ textAlign: 'right' }}>
-                    <Text type="secondary" style={{ fontSize: '11px' }}><DollarOutlined /> BASE PRICE</Text>
-                    <Text strong style={{ fontSize: '16px', color: 'var(--color-primary)' }}>
-                      ₹{Number(item.basePrice).toLocaleString()}
-                    </Text>
-                  </Flex>
-                </Flex>
-
-                <Flex justify="space-between" align="center" style={{ background: '#f5f5f5', padding: '10px 15px', borderRadius: '10px' }}>
-                  <Flex gap={8} align="center">
-                    <CalendarOutlined style={{ color: 'var(--color-text-secondary)' }} />
-                    <Text style={{ fontSize: '12px' }}>
-                      {item.durationType ? item.durationType.replace('_', ' ').toUpperCase() : 'ONE-TIME'}
-                    </Text>
-                  </Flex>
+                <Flex justify="flex-end" align="center" style={{ background: '#f5f5f5', padding: '10px 15px', borderRadius: '10px' }}>
                   <Flex gap={8}>
                     <Button 
                       type="text" 
@@ -423,41 +431,32 @@ const Services: React.FC = () => {
         open={isModalOpen}
         onCancel={() => setIsModalOpen(false)}
         footer={null}
-        width={isMobile ? '100%' : 540}
+        width={isMobile ? '100%' : 480}
         style={{ top: isMobile ? 10 : 100 }}
       >
         <Form form={form} layout="vertical" onFinish={handleSave}>
-          <Form.Item name="name" label="Service Name" rules={[{ required: true }]}>
+          <Form.Item name="name" label="Product/Service Name" rules={[{ required: true }]}>
             <Input placeholder="e.g. Website Hosting" />
           </Form.Item>
-          <Form.Item name="category" label="Category" rules={[{ required: true }]}>
-            <Input placeholder="e.g. IT Services" />
+          <Form.Item name="categoryId" label="Category" rules={[{ required: true, message: 'Please select a category' }]}>
+            <Select placeholder="Select a category" showSearch optionFilterProp="children">
+              {categories?.map(cat => (
+                <Option key={cat.id} value={cat.id}>{cat.name}</Option>
+              ))}
+            </Select>
           </Form.Item>
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
-            <Form.Item name="pricingType" label="Pricing Type" rules={[{ required: true }]}>
-              <Select>
+          <Form.Item name="pricingType" label="Subscription Type" rules={[{ required: true }]}>
+              <Select placeholder="Select type">
                 <Option value={PricingType.FIXED}>Fixed Rate</Option>
                 <Option value={PricingType.CUSTOM}>Subscription</Option>
               </Select>
-            </Form.Item>
-            <Form.Item name="durationType" label="Billing Cycle" rules={[{ required: !currentPricingType || currentPricingType !== 'fixed' }]}>
-              <Select disabled={currentPricingType === PricingType.FIXED} placeholder={currentPricingType === PricingType.FIXED ? "N/A" : "Select cycle"}>
-                <Option value={DurationType.MONTHLY}>Monthly</Option>
-                <Option value={DurationType.QUARTERLY}>Quarterly</Option>
-                <Option value={DurationType.YEARLY}>Yearly</Option>
-                <Option value={DurationType.CUSTOM}>Subscription</Option>
-              </Select>
-            </Form.Item>
-          </div>
-          <Form.Item name="basePrice" label="Base Price (₹)" rules={[{ required: true }]}>
-            <InputNumber style={{ width: '100%' }} min={0} />
           </Form.Item>
           <Form.Item name="isActive" label="Is Active" valuePropName="checked" initialValue={true}>
             <Switch />
           </Form.Item>
           <Form.Item style={{ marginBottom: 0, marginTop: 24 }}>
-            <Button type="primary" htmlType="submit" block loading={isLoading}>
-              Save Service
+            <Button type="primary" htmlType="submit" block loading={isSubmitting}>
+              Save Product/Service
             </Button>
           </Form.Item>
         </Form>

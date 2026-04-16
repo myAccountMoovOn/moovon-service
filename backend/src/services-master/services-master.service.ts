@@ -26,12 +26,14 @@ export class ServicesMasterService {
     category?: string,
     from?: string,
     to?: string,
+    categoryId?: string,
   ) {
-    const query = this.serviceRepo.createQueryBuilder('service');
+    const query = this.serviceRepo.createQueryBuilder('service')
+      .leftJoinAndSelect('service.categoryRef', 'categoryRef');
 
     if (search) {
       query.andWhere(
-        '(service.name ILIKE :search OR service.category ILIKE :search)',
+        '(service.name ILIKE :search OR service.category ILIKE :search OR categoryRef.name ILIKE :search)',
         { search: `%${search}%` },
       );
     }
@@ -49,9 +51,13 @@ export class ServicesMasterService {
     }
 
     if (category) {
-      query.andWhere('service.category ILIKE :category', {
+      query.andWhere('(service.category ILIKE :category OR categoryRef.name ILIKE :category)', {
         category: `%${category}%`,
       });
+    }
+
+    if (categoryId) {
+      query.andWhere('service.categoryId = :categoryId', { categoryId });
     }
 
     if (from && to) {
@@ -76,7 +82,10 @@ export class ServicesMasterService {
   }
 
   async findOne(id: string) {
-    const service = await this.serviceRepo.findOne({ where: { id } });
+    const service = await this.serviceRepo.findOne({ 
+      where: { id },
+      relations: ['categoryRef', 'subscriptions'] 
+    });
     if (!service) {
       throw new NotFoundException(`Service with ID ${id} not found`);
     }

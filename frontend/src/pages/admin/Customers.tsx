@@ -456,6 +456,23 @@ const Customers: React.FC = () => {
                     </Flex>
                 </Flex>
 
+                <Divider style={{ margin: 0 }} />
+
+                <Flex vertical gap={12}>
+                    <Text type="secondary" style={{ fontSize: '10px', textTransform: 'uppercase' }}>Communication Channels</Text>
+                    <Flex gap={8} wrap="wrap">
+                        <Tag color={selectedCustomer.notificationEmail !== false ? 'success' : 'default'}>
+                            {selectedCustomer.notificationEmail !== false ? 'EMAIL ON' : 'EMAIL OFF'}
+                        </Tag>
+                        <Tag color={selectedCustomer.notificationSms !== false ? 'success' : 'default'}>
+                            {selectedCustomer.notificationSms !== false ? 'SMS ON' : 'SMS OFF'}
+                        </Tag>
+                        <Tag color={selectedCustomer.notificationWhatsapp !== false ? 'success' : 'default'}>
+                            {selectedCustomer.notificationWhatsapp !== false ? 'WHATSAPP ON' : 'WHATSAPP OFF'}
+                        </Tag>
+                    </Flex>
+                </Flex>
+
                 <Alert 
                     title="Business Metadata"
                     description={
@@ -534,8 +551,8 @@ const Customers: React.FC = () => {
         style={{ top: isMobile ? 20 : 100 }}
       >
         <Form form={form} layout="vertical" onFinish={handleSubmit}>
-          <Form.Item name="name" label="Full Name" rules={[{ required: true }]}>
-            <Input placeholder="John Doe" />
+          <Form.Item name="name" label="Full Name" rules={[{ required: true, max: 10, message: 'Name cannot exceed 10 characters' }]}>
+            <Input placeholder="John Doe" maxLength={10} />
           </Form.Item>
           <Form.Item name="email" label="Email" rules={[{ required: true, type: 'email' }]}>
             <Input placeholder="john@example.com" />
@@ -570,6 +587,19 @@ const Customers: React.FC = () => {
               <Switch checkedChildren="ON" unCheckedChildren="OFF" />
             </Form.Item>
           )}
+
+          <Divider orientation="left" style={{ fontSize: '12px' }}>Communication Channels</Divider>
+          <Flex gap={24} style={{ marginBottom: 24 }}>
+            <Form.Item name="notificationEmail" label="Email" valuePropName="checked" initialValue={true}>
+              <Switch checkedChildren="ON" unCheckedChildren="OFF" />
+            </Form.Item>
+            <Form.Item name="notificationSms" label="SMS" valuePropName="checked" initialValue={true}>
+              <Switch checkedChildren="ON" unCheckedChildren="OFF" />
+            </Form.Item>
+            <Form.Item name="notificationWhatsapp" label="WhatsApp" valuePropName="checked" initialValue={true}>
+              <Switch checkedChildren="ON" unCheckedChildren="OFF" />
+            </Form.Item>
+          </Flex>
 
           <Form.Item>
             <Button type="primary" htmlType="submit" loading={createMutation.isPending || updateMutation.isPending} block>

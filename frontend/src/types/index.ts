@@ -20,6 +20,12 @@ export const DurationType = {
 } as const;
 export type DurationType = typeof DurationType[keyof typeof DurationType];
 
+export const DiscountType = {
+  PERCENTAGE: 'percentage',
+  FIXED: 'fixed',
+} as const;
+export type DiscountType = typeof DiscountType[keyof typeof DiscountType];
+
 export const PaymentStatus = {
   PENDING: 'pending',
   PAID: 'paid',
@@ -76,14 +82,49 @@ export interface Customer {
   gstNumber?: string;
   notes?: string;
   isActive: boolean;
+  notificationEmail?: boolean;
+  notificationSms?: boolean;
+  notificationWhatsapp?: boolean;
   createdAt: string;
   subscriptionsCount?: number;
+}
+
+export interface Category {
+  id: string;
+  name: string;
+  description?: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface Package {
+  id: string;
+  services?: Service[];
+  name: string;
+  durationMonths: number;
+  actualPrice: number;
+  offerPrice: number;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface Coupon {
+  id: string;
+  code: string;
+  type: DiscountType;
+  value: number;
+  expiryDate: string | null;
+  isActive: boolean;
+  minPurchaseAmount: number;
+  createdAt: string;
 }
 
 export interface Service {
   id: string;
   name: string;
-  category: string;
+  category?: string;
+  categoryId?: string;
+  categoryRef?: Category;
   pricingType: PricingType;
   durationType: DurationType;
   basePrice: number;

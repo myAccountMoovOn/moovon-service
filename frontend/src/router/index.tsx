@@ -16,6 +16,9 @@ import Reports from '../pages/admin/Reports';
 import Templates from '../pages/admin/Templates';
 import CustomerDetails from '../pages/admin/CustomerDetails';
 import MockPayment from '../pages/admin/MockPayment';
+import Categories from '../pages/admin/Categories';
+import Packages from '../pages/admin/Packages';
+import Coupons from '../pages/admin/Coupons';
 
 // Customer Pages
 import CustomerDashboard from '../pages/customer/Dashboard';
@@ -63,6 +66,9 @@ export const router = createBrowserRouter([
           { path: 'notifications', element: <Notifications /> },
           { path: 'reports', element: <Reports /> },
           { path: 'templates', element: <Templates /> },
+          { path: 'categories', element: <Categories /> },
+          { path: 'packages', element: <Packages /> },
+          { path: 'coupons', element: <Coupons /> },
         ],
       },
     ],

@@ -19,7 +19,8 @@ import {
   Flex,
   Divider,
   Input,
-  Radio
+  Radio,
+  Switch
 } from 'antd';
 import { 
   PlusOutlined, 
@@ -37,8 +38,15 @@ import {
   CreditCardOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
-import { useSubscriptions, useCustomers, useServices, useDeleteSubscription } from '../../hooks/useApi';
-import type { Subscription } from '../../types';
+import { 
+  useSubscriptions, 
+  useCustomers, 
+  useServices, 
+  useDeleteSubscription,
+  usePackages,
+  useValidateCoupon
+} from '../../hooks/useApi';
+import type { Subscription, Package, Coupon } from '../../types';
 import { NotificationChannel, PaymentStatus } from '../../types';
 import axiosInstance from '../../api/axiosInstance';
 
@@ -62,6 +70,13 @@ const Subscriptions: React.FC = () => {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [form] = Form.useForm();
+  
+  const selectedServiceId = Form.useWatch('serviceId', form);
+  const selectedPackageId = Form.useWatch('packageId', form);
+  
+  const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Date Logic for Expiry Filter
   const dateParams = useMemo(() => {
@@ -97,7 +112,44 @@ const Subscriptions: React.FC = () => {
 
   const { data: customersList } = useCustomers({ page: 1, limit: 1000 });
   const { data: servicesList } = useServices({ page: 1, limit: 1000 });
+  const { data: packagesList } = usePackages({ serviceId: selectedServiceId });
   const deleteMutation = useDeleteSubscription();
+  const validateCouponMutation = useValidateCoupon();
+
+  // Handling Package Selection logic
+  React.useEffect(() => {
+    if (selectedPackageId && packagesList) {
+      const pkg = packagesList.find(p => p.id === selectedPackageId);
+      if (pkg) {
+        form.setFieldsValue({ 
+          amount: pkg.offerPrice,
+          // Calculate end date based on duration
+          endDate: dayjs().add(pkg.durationMonths, 'month')
+        });
+      }
+    }
+  }, [selectedPackageId, packagesList, form]);
+
+  const handleApplyCoupon = async () => {
+    const code = form.getFieldValue('couponCode');
+    const amount = form.getFieldValue('amount');
+    
+    if (!code) return message.warning('Please enter a coupon code');
+    if (!amount) return message.warning('Please select a service/package first');
+
+    setCouponLoading(true);
+    try {
+      const result = await validateCouponMutation.mutateAsync({ code, amount });
+      setAppliedCoupon(result);
+      form.setFieldsValue({ amount: result.finalAmount });
+      message.success(`Coupon applied! You saved ₹${result.discountAmount}`);
+    } catch (err: any) {
+      message.error(err.response?.data?.message || 'Invalid coupon');
+      setAppliedCoupon(null);
+    } finally {
+      setCouponLoading(false);
+    }
+  };
 
   const getStatusTag = (sub: Subscription) => {
     if (!sub.endDate) {
@@ -117,9 +169,21 @@ const Subscriptions: React.FC = () => {
   };
 
   const handleCreate = async (values: any) => {
+    setIsSubmitting(true);
     try {
+      const { couponCode, notificationEmail, notificationSms, notificationWhatsapp, ...cleanedValues } = values;
+      
+      // 1. Update customer preferences
+      await axiosInstance.patch(`/customers/${values.customerId}`, {
+        notificationEmail,
+        notificationSms,
+        notificationWhatsapp,
+      });
+
+      // 2. Create subscription
       const payload = {
-        ...values,
+        ...cleanedValues,
+        couponId: appliedCoupon?.couponId || null,
         startDate: values.startDate.format('YYYY-MM-DD'),
         endDate: values.endDate ? values.endDate.format('YYYY-MM-DD') : null,
       };
@@ -131,6 +195,8 @@ const Subscriptions: React.FC = () => {
       refetch();
     } catch (err) {
       message.error('Assignment failed');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -468,34 +534,109 @@ const Subscriptions: React.FC = () => {
       >
         <Form form={form} layout="vertical" onFinish={handleCreate}>
           <Form.Item name="customerId" label="Customer" rules={[{ required: true, message: 'Select a customer' }]}>
-            <Select showSearch optionFilterProp="children" placeholder="Search customer name or email" size="large">
+            <Select 
+              showSearch 
+              optionFilterProp="children" 
+              placeholder="Search customer name or email" 
+              size="large"
+              onChange={async (id) => {
+                try {
+                  const { data } = await axiosInstance.get(`/customers/${id}`);
+                  const customer = data.data;
+                  form.setFieldsValue({
+                    notificationEmail: customer.notificationEmail !== false,
+                    notificationSms: customer.notificationSms !== false,
+                    notificationWhatsapp: customer.notificationWhatsapp !== false,
+                  });
+                } catch (err) {
+                  // Fallback to default true if fetch fails
+                  form.setFieldsValue({
+                    notificationEmail: true,
+                    notificationSms: true,
+                    notificationWhatsapp: true,
+                  });
+                }
+              }}
+            >
               {customersList?.data.map((c: any) => (
                 <Option key={c.id} value={c.id}>{c.name} ({c.email})</Option>
               ))}
             </Select>
           </Form.Item>
-          <Form.Item name="serviceId" label="Service" rules={[{ required: true, message: 'Select a service' }]}>
-            <Select 
-              placeholder="Select a master service"
-              size="large"
-              onChange={(val) => {
-                const s = servicesList?.data.find((item: any) => item.id === val);
-                if (s) form.setFieldsValue({ amount: s.basePrice });
-              }}
+
+          <Flex gap={16} vertical={isMobile}>
+            <Form.Item 
+              name="serviceId" 
+              label="Product / Service (Optional)" 
+              dependencies={['packageId']}
+              rules={[
+                ({ getFieldValue }) => ({
+                  validator(_, value) {
+                    if (!value && !getFieldValue('packageId')) {
+                      return Promise.reject(new Error('Select a service or package'));
+                    }
+                    return Promise.resolve();
+                  },
+                }),
+              ]}
+              style={{ flex: 1 }}
             >
-              {servicesList?.data
-                .filter((s: any) => s.isActive)
-                .map((s: any) => (
-                  <Option key={s.id} value={s.id}>{s.name} - ₹{s.basePrice}</Option>
-                ))
-              }
-            </Select>
-          </Form.Item>
+              <Select 
+                placeholder="Select a service"
+                size="large"
+                onChange={(val) => {
+                  form.setFieldsValue({ packageId: undefined, couponCode: undefined });
+                  setAppliedCoupon(null);
+                }}
+              >
+                {servicesList?.data
+                  .filter((s: any) => s.isActive)
+                  .map((s: any) => (
+                    <Option key={s.id} value={s.id}>{s.name}</Option>
+                  ))
+                }
+              </Select>
+            </Form.Item>
+
+            <Form.Item 
+              name="packageId" 
+              label="Package (Optional)" 
+              dependencies={['serviceId']}
+              rules={[
+                ({ getFieldValue }) => ({
+                  validator(_, value) {
+                    if (!value && !getFieldValue('serviceId')) {
+                      return Promise.reject(new Error('Select a service or package'));
+                    }
+                    return Promise.resolve();
+                  },
+                }),
+              ]}
+              style={{ flex: 1 }}
+            >
+              <Select 
+                placeholder="Select a package bundle"
+                size="large"
+                allowClear
+                onChange={() => {
+                  form.setFieldsValue({ couponCode: undefined });
+                  setAppliedCoupon(null);
+                }}
+              >
+                {packagesList?.map((p) => (
+                  <Option key={p.id} value={p.id}>
+                    {p.name} ({p.durationMonths}mo) - ₹{p.offerPrice}
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+          </Flex>
+
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
-            <Form.Item name="startDate" label="Start Date" rules={[{ required: true, message: 'Required' }]}>
+            <Form.Item name="startDate" label="Start Date" rules={[{ required: true, message: 'Required' }]} initialValue={dayjs()}>
               <DatePicker style={{ width: '100%' }} size="large" />
             </Form.Item>
-            <Form.Item name="endDate" label="End Date (Optional)">
+            <Form.Item name="endDate" label="End Date (Expiry)">
               <DatePicker 
                 style={{ width: '100%' }} 
                 size="large" 
@@ -503,11 +644,51 @@ const Subscriptions: React.FC = () => {
               />
             </Form.Item>
           </div>
-          <Form.Item name="amount" label="Agreed Price (₹)" rules={[{ required: true }]}>
-            <InputNumber style={{ width: '100%' }} min={0} size="large" prefix="₹" />
+
+          <Divider style={{ margin: '12px 0' }} />
+
+          <Space.Compact style={{ width: '100%', marginBottom: 16 }}>
+            <Form.Item name="couponCode" noStyle>
+              <Input placeholder="Enter Coupon Code" size="large" style={{ textTransform: 'uppercase' }} />
+            </Form.Item>
+            <Button type="primary" size="large" onClick={handleApplyCoupon} loading={couponLoading}>
+              Apply
+            </Button>
+          </Space.Compact>
+
+          {appliedCoupon && (
+            <div style={{ marginBottom: 16, padding: '8px 12px', background: '#f6ffed', border: '1px solid #b7eb8f', borderRadius: '8px' }}>
+              <Flex justify="space-between">
+                <Text type="success"><CheckCircleOutlined /> Coupon Applied: {appliedCoupon.code}</Text>
+                <Text strong style={{ color: '#52c41a' }}>- ₹{appliedCoupon.discountAmount}</Text>
+              </Flex>
+            </div>
+          )}
+
+          <Form.Item name="amount" label="Final Agreed Price (₹)" rules={[{ required: true }]}>
+            <InputNumber 
+              style={{ width: '100%', fontSize: '18px', fontWeight: 'bold' }} 
+              min={0} 
+              size="large" 
+              prefix="₹" 
+            />
           </Form.Item>
+
+          <Divider orientation="left" style={{ fontSize: '12px' }}>Communication Channels</Divider>
+          <Flex gap={24} style={{ marginBottom: 16 }}>
+            <Form.Item name="notificationEmail" label="Email" valuePropName="checked" initialValue={true}>
+              <Switch checkedChildren="ON" unCheckedChildren="OFF" />
+            </Form.Item>
+            <Form.Item name="notificationSms" label="SMS" valuePropName="checked" initialValue={true}>
+              <Switch checkedChildren="ON" unCheckedChildren="OFF" />
+            </Form.Item>
+            <Form.Item name="notificationWhatsapp" label="WhatsApp" valuePropName="checked" initialValue={true}>
+              <Switch checkedChildren="ON" unCheckedChildren="OFF" />
+            </Form.Item>
+          </Flex>
+
           <Form.Item style={{ marginBottom: 0, marginTop: 24 }}>
-            <Button type="primary" htmlType="submit" block size="large" loading={isLoading}>
+            <Button type="primary" htmlType="submit" block size="large" loading={isSubmitting}>
               Assign and Send Link
             </Button>
           </Form.Item>

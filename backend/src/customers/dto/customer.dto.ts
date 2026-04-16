@@ -5,6 +5,7 @@ import {
   IsBoolean,
   IsPhoneNumber,
   MinLength,
+  MaxLength,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -12,6 +13,7 @@ export class CreateCustomerDto {
   @ApiProperty()
   @IsString()
   @MinLength(2)
+  @MaxLength(10)
   name: string;
 
   @ApiProperty()
@@ -51,6 +53,21 @@ export class CreateCustomerDto {
   @IsOptional()
   @IsBoolean()
   sendLoginCredentials?: boolean;
+
+  @ApiPropertyOptional({ default: true })
+  @IsOptional()
+  @IsBoolean()
+  notificationEmail?: boolean;
+
+  @ApiPropertyOptional({ default: true })
+  @IsOptional()
+  @IsBoolean()
+  notificationSms?: boolean;
+
+  @ApiPropertyOptional({ default: true })
+  @IsOptional()
+  @IsBoolean()
+  notificationWhatsapp?: boolean;
 }
 
 export class UpdateCustomerDto {
@@ -58,6 +75,7 @@ export class UpdateCustomerDto {
   @IsOptional()
   @IsString()
   @MinLength(2)
+  @MaxLength(10)
   name?: string;
 
   @ApiPropertyOptional()
@@ -94,4 +112,19 @@ export class UpdateCustomerDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  notificationEmail?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  notificationSms?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  notificationWhatsapp?: boolean;
 }

@@ -1,11 +1,44 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axiosInstance from '../api/axiosInstance';
-import type { PaginatedResponse, Customer, Service, Subscription, Payment, NotificationLog, Template } from '../types';
+import type { PaginatedResponse, Category, Package, Customer, Service, Subscription, Payment, NotificationLog, Template, Coupon } from '../types';
 
 // Generic fetcher
 const fetcher = async (url: string, params?: any) => {
   const { data } = await axiosInstance.get(url, { params });
   return data.data; // Our backend returns { success, data, message }
+};
+
+// Categories
+export const useCategories = (params?: { isActive?: boolean }) => {
+  return useQuery<Category[]>({
+    queryKey: ['categories', params],
+    queryFn: () => axiosInstance.get('categories', { params }).then(res => res.data.data),
+  });
+};
+
+export const useCreateCategory = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Partial<Category>) => axiosInstance.post('categories', data).then(res => res.data.data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['categories'] }),
+  });
+};
+
+export const useUpdateCategory = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<Category> }) => 
+      axiosInstance.patch(`categories/${id}`, data).then(res => res.data.data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['categories'] }),
+  });
+};
+
+export const useDeleteCategory = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => axiosInstance.delete(`categories/${id}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['categories'] }),
+  });
 };
 
 // Customers
@@ -16,6 +49,7 @@ export const useCustomers = (params: {
   isActive?: boolean;
   from?: string;
   to?: string;
+  hasSubscriptions?: boolean;
 }) => {
   return useQuery<PaginatedResponse<Customer>>({
     queryKey: ['customers', params],
@@ -77,6 +111,7 @@ export const useServices = (params: {
   category?: string;
   from?: string;
   to?: string;
+  categoryId?: string;
 }) => {
   return useQuery<PaginatedResponse<Service>>({
     queryKey: ['services', params],
@@ -89,6 +124,80 @@ export const useDeleteService = () => {
   return useMutation({
     mutationFn: (id: string) => axiosInstance.delete(`services/${id}`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['services'] }),
+  });
+};
+
+
+// Packages
+export const usePackages = (params?: { serviceId?: string }) => {
+  return useQuery<Package[]>({
+    queryKey: ['packages', params],
+    queryFn: () => axiosInstance.get('packages', { params }).then(res => res.data.data),
+  });
+};
+
+export const useCreatePackage = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => axiosInstance.post('packages', data).then(res => res.data.data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['packages'] }),
+  });
+};
+
+export const useUpdatePackage = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => 
+      axiosInstance.patch(`packages/${id}`, data).then(res => res.data.data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['packages'] }),
+  });
+};
+
+export const useDeletePackage = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => axiosInstance.delete(`packages/${id}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['packages'] }),
+  });
+};
+
+// Coupons
+export const useCoupons = () => {
+  return useQuery<Coupon[]>({
+    queryKey: ['coupons'],
+    queryFn: () => axiosInstance.get('coupons').then(res => res.data.data),
+  });
+};
+
+export const useCreateCoupon = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => axiosInstance.post('coupons', data).then(res => res.data.data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['coupons'] }),
+  });
+};
+
+export const useUpdateCoupon = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => 
+      axiosInstance.patch(`coupons/${id}`, data).then(res => res.data.data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['coupons'] }),
+  });
+};
+
+export const useDeleteCoupon = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => axiosInstance.delete(`coupons/${id}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['coupons'] }),
+  });
+};
+
+export const useValidateCoupon = () => {
+  return useMutation({
+    mutationFn: (data: { code: string; amount: number }) => 
+      axiosInstance.post('coupons/validate', data).then(res => res.data.data),
   });
 };
 

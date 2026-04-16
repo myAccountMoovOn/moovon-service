@@ -11,7 +11,10 @@ import {
   LogoutOutlined,
   UserOutlined,
   MenuFoldOutlined,
-  MenuUnfoldOutlined
+  MenuUnfoldOutlined,
+  TagsOutlined,
+  GiftOutlined,
+  DollarOutlined
 } from '@ant-design/icons';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -37,8 +40,11 @@ const AdminLayout: React.FC = () => {
 
   const menuItems = [
     { key: '/admin/dashboard', icon: <DashboardOutlined />, label: 'Dashboard' },
+    { key: '/admin/categories', icon: <TagsOutlined />, label: 'Categories' },
+    { key: '/admin/services', icon: <AppstoreOutlined />, label: 'Product and Services' },
+    { key: '/admin/packages', icon: <GiftOutlined />, label: 'Packages' },
+    { key: '/admin/coupons', icon: <DollarOutlined />, label: 'Coupons' },
     { key: '/admin/customers', icon: <TeamOutlined />, label: 'Customers' },
-    { key: '/admin/services', icon: <AppstoreOutlined />, label: 'Services' },
     { key: '/admin/subscriptions', icon: <FileSyncOutlined />, label: 'Subscriptions' },
     { key: '/admin/payments', icon: <CreditCardOutlined />, label: 'Payments' },
     { key: '/admin/notifications', icon: <NotificationOutlined />, label: 'Notifications' },

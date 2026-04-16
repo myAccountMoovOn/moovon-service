@@ -43,6 +43,7 @@ export class ServicesMasterController {
     @Query('category') category?: string,
     @Query('from') from?: string,
     @Query('to') to?: string,
+    @Query('categoryId') categoryId?: string,
   ) {
     const pageNumber = page ? parseInt(page, 10) : 1;
     const limitNumber = limit ? parseInt(limit, 10) : 10;
@@ -58,6 +59,7 @@ export class ServicesMasterController {
       category,
       from,
       to,
+      categoryId,
     );
   }
 

@@ -48,6 +48,15 @@ export class Customer {
   @Column({ name: 'is_active', type: 'boolean', default: true })
   isActive: boolean;
 
+  @Column({ name: 'notification_email', type: 'boolean', default: true })
+  notificationEmail: boolean;
+
+  @Column({ name: 'notification_sms', type: 'boolean', default: true })
+  notificationSms: boolean;
+
+  @Column({ name: 'notification_whatsapp', type: 'boolean', default: true })
+  notificationWhatsapp: boolean;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

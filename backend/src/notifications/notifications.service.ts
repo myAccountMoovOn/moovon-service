@@ -50,6 +50,16 @@ export class NotificationsService {
     const log = await this.createLog(payload, NotificationChannel.EMAIL);
 
     try {
+      // Check customer preferences
+      if (payload.customerId) {
+        const customer = await this.customerRepo.findOne({ where: { id: payload.customerId } });
+        if (customer && customer.notificationEmail === false) {
+          this.logger.log(`Skipping Email to customer ${payload.customerId} - Email notifications disabled`);
+          await this.updateLog(log.id, NotificationStatus.FAILED, 'Email notifications disabled by customer preference');
+          return;
+        }
+      }
+
       const template = await this.templateRepo.findOne({
         where: {
           type: payload.templateType as NotificationTemplateType,
@@ -93,6 +103,16 @@ export class NotificationsService {
     const log = await this.createLog(payload, NotificationChannel.SMS);
 
     try {
+      // Check customer preferences
+      if (payload.customerId) {
+        const customer = await this.customerRepo.findOne({ where: { id: payload.customerId } });
+        if (customer && customer.notificationSms === false) {
+          this.logger.log(`Skipping SMS to customer ${payload.customerId} - SMS notifications disabled`);
+          await this.updateLog(log.id, NotificationStatus.FAILED, 'SMS notifications disabled by customer preference');
+          return;
+        }
+      }
+
       const template = await this.templateRepo.findOne({
         where: {
           type: payload.templateType as NotificationTemplateType,

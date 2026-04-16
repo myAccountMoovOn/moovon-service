@@ -59,26 +59,31 @@ export class CustomersService {
 
       // 3. Send credentials if requested
       if (dto.sendLoginCredentials) {
-        this.logger.log(`Dispatching credential notification for ${dto.email}`);
-        await this.notificationQueue.add(
-          NotificationJobType.SEND_EMAIL,
-          {
-            subscriptionId: null,
-            customerId: savedCustomer.id,
-            channel: 'email',
-            templateType: NotificationTemplateType.CUSTOMER_CREDENTIALS,
-            variables: {
-              customer_name: savedCustomer.name,
-              customer_email: savedCustomer.email,
-              customer_password: generatedPassword,
+        try {
+          this.logger.log(`Dispatching credential notification for ${dto.email}`);
+          await this.notificationQueue.add(
+            NotificationJobType.SEND_EMAIL,
+            {
+              subscriptionId: null,
+              customerId: savedCustomer.id,
+              channel: 'email',
+              templateType: NotificationTemplateType.CUSTOMER_CREDENTIALS,
+              variables: {
+                customer_name: savedCustomer.name,
+                customer_email: savedCustomer.email,
+                customer_password: generatedPassword,
+              },
+            } as NotificationJobPayload,
+            {
+              removeOnComplete: true,
+              attempts: 3,
+              backoff: { type: 'exponential', delay: 1000 },
             },
-          } as NotificationJobPayload,
-          {
-            removeOnComplete: true,
-            attempts: 3,
-            backoff: { type: 'exponential', delay: 1000 },
-          },
-        );
+          );
+        } catch (queueError: any) {
+          this.logger.error(`Failed to queue credential notification: ${queueError.message}`);
+          // We don't throw here so the customer creation still succeeds
+        }
       }
 
       return {
@@ -86,7 +91,9 @@ export class CustomersService {
         password: generatedPassword, // Return for admin result modal
       };
     } catch (error: any) {
-      await queryRunner.rollbackTransaction();
+      if (queryRunner.isTransactionActive) {
+        await queryRunner.rollbackTransaction();
+      }
       this.logger.error(`Failed to create customer: ${error.message}`, error.stack);
       if (error instanceof BadRequestException) throw error;
       throw new InternalServerErrorException('Failed to create customer');
@@ -95,7 +102,7 @@ export class CustomersService {
     }
   }
 
-  async findAll(page: number = 1, limit: number = 10, search?: string, isActive?: boolean, from?: string, to?: string) {
+  async findAll(page: number = 1, limit: number = 10, search?: string, isActive?: boolean, from?: string, to?: string, hasSubscriptions?: boolean) {
     const query = this.customerRepo.createQueryBuilder('customer');
 
     if (search) {
@@ -104,6 +111,28 @@ export class CustomersService {
 
     if (isActive !== undefined) {
       query.andWhere('customer.isActive = :isActive', { isActive });
+    }
+
+    if (hasSubscriptions !== undefined) {
+      if (hasSubscriptions) {
+        query.andWhere(qb => {
+          const subQuery = qb.subQuery()
+            .select('1')
+            .from(Subscription, 'sub')
+            .where('sub.customerId = customer.id')
+            .getQuery();
+          return 'EXISTS ' + subQuery;
+        });
+      } else {
+        query.andWhere(qb => {
+          const subQuery = qb.subQuery()
+            .select('1')
+            .from(Subscription, 'sub')
+            .where('sub.customerId = customer.id')
+            .getQuery();
+          return 'NOT EXISTS ' + subQuery;
+        });
+      }
     }
 
     if (from && to) {
@@ -202,7 +231,9 @@ export class CustomersService {
 
       return { success: true, message: 'Customer and all associated data deleted successfully' };
     } catch (error) {
-      await queryRunner.rollbackTransaction();
+      if (queryRunner.isTransactionActive) {
+        await queryRunner.rollbackTransaction();
+      }
       throw error;
     } finally {
       await queryRunner.release();

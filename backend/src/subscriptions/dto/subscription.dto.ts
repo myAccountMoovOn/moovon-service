@@ -19,9 +19,10 @@ export class CreateSubscriptionDto {
   @IsUUID()
   customerId: string;
 
-  @ApiProperty()
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsUUID()
-  serviceId: string;
+  serviceId?: string;
 
   @ApiProperty({ example: '2026-04-01' })
   @IsDateString()
@@ -46,6 +47,16 @@ export class CreateSubscriptionDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  packageId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  couponId?: string;
 }
 
 export class UpdateSubscriptionDto {

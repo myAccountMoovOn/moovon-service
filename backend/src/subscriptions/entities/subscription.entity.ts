@@ -31,8 +31,8 @@ export class Subscription {
   @JoinColumn({ name: 'customer_id' })
   customer?: Customer;
 
-  @Column({ name: 'service_id', type: 'uuid' })
-  serviceId: string;
+  @Column({ name: 'service_id', type: 'uuid', nullable: true })
+  serviceId: string | null;
 
   @ManyToOne(() => Service, (service) => service.subscriptions)
   @JoinColumn({ name: 'service_id' })
@@ -60,6 +60,12 @@ export class Subscription {
 
   @Column({ type: 'text', nullable: true })
   notes: string | null;
+
+  @Column({ name: 'package_id', type: 'uuid', nullable: true })
+  packageId: string | null;
+
+  @Column({ name: 'coupon_id', type: 'uuid', nullable: true })
+  couponId: string | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

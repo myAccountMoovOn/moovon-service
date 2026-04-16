@@ -7,6 +7,8 @@ import {
   OneToMany,
 } from 'typeorm';
 import { Subscription } from '../../subscriptions/entities/subscription.entity';
+import { Category } from '../../categories/entities/category.entity';
+import { ManyToOne, JoinColumn } from 'typeorm';
 
 export enum PricingType {
   FIXED = 'fixed',
@@ -28,16 +30,23 @@ export class Service {
   @Column({ type: 'varchar', length: 255 })
   name: string;
 
-  @Column({ type: 'varchar', length: 100 })
+  @Column({ type: 'varchar', length: 100, nullable: true })
   category: string;
 
-  @Column({ name: 'pricing_type', type: 'enum', enum: PricingType })
+  @Column({ name: 'category_id', type: 'uuid', nullable: true })
+  categoryId: string;
+
+  @ManyToOne(() => Category, (cat) => cat.services)
+  @JoinColumn({ name: 'category_id' })
+  categoryRef: Category;
+
+  @Column({ name: 'pricing_type', type: 'enum', enum: PricingType, nullable: true })
   pricingType: PricingType;
 
-  @Column({ name: 'duration_type', type: 'enum', enum: DurationType })
+  @Column({ name: 'duration_type', type: 'enum', enum: DurationType, nullable: true })
   durationType: DurationType;
 
-  @Column({ name: 'base_price', type: 'decimal', precision: 10, scale: 2 })
+  @Column({ name: 'base_price', type: 'decimal', precision: 10, scale: 2, nullable: true })
   basePrice: number;
 
   @Column({ name: 'is_active', type: 'boolean', default: true })

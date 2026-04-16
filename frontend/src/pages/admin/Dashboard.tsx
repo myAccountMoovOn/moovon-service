@@ -57,7 +57,7 @@ const AdminDashboard: React.FC = () => {
   const [period, setPeriod] = useState<string>('month');
   const [customRange, setCustomRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null);
   const [search, setSearch] = useState<string>('');
-  const [activeMetric, setActiveMetric] = useState<string | null>('revenue');
+  const [activeMetric, setActiveMetric] = useState<string | null>('customers');
 
   // Date Range Logic
   const dateParams = useMemo(() => {
@@ -99,10 +99,14 @@ const AdminDashboard: React.FC = () => {
   };
 
   const { data: pData, isLoading: pLoading } = useAllPayments(detailParams);
-  const { data: cData, isLoading: cLoading } = useCustomers(detailParams);
+  const { data: cData, isLoading: cLoading } = useCustomers({
+    ...detailParams, 
+    hasSubscriptions: activeMetric === 'customers' ? true : undefined 
+  });
   const { data: activeSubs, isLoading: asLoading } = useSubscriptions({...detailParams, status: 'active', from: undefined, to: undefined});
   const { data: expiredSubs, isLoading: esLoading } = useSubscriptions({...detailParams, status: 'expired', from: undefined, to: undefined});
   const { data: upcomingSubs, isLoading: usLoading } = useSubscriptions({...detailParams, status: 'upcoming', from: undefined, to: undefined});
+  const { data: pendingSubs, isLoading: psLoading } = useSubscriptions({...detailParams, paymentStatus: 'pending'});
 
   if (summaryLoading) {
     return (
@@ -113,11 +117,13 @@ const AdminDashboard: React.FC = () => {
   }
 
   const metrics = [
+    { id: 'customers', title: "Total Customers", value: summary?.totalCustomers || 0, prefix: <UserOutlined />, color: 'var(--color-text-main)' },
+    { id: 'active', title: "Total Active", value: summary?.activeSubscriptions || 0, prefix: <FileSyncOutlined />, color: 'var(--color-success)' },
+    { id: 'expired', title: "Total Expired", value: summary?.expiredSubscriptions || 0, prefix: <ExclamationCircleOutlined />, color: '#ff4d4f' },
+    { id: 'new_customers', title: "New Customer", value: summary?.newCustomers || 0, prefix: <RocketOutlined />, color: 'var(--color-primary)' },
+    { id: 'upcoming', title: "Upcoming Renewable", value: summary?.upcomingRenewals || 0, prefix: <ClockCircleOutlined />, color: 'var(--color-warning)' },
+    { id: 'expected', title: "Expected Revenue", value: summary?.expectedRevenue || 0, prefix: "₹", precision: 2, color: 'var(--color-warning)' },
     { id: 'revenue', title: "Total Revenue", value: summary?.totalRevenue || 0, prefix: "₹", precision: 2, color: 'var(--color-primary)' },
-    { id: 'customers', title: "New Customers", value: summary?.totalCustomers || 0, prefix: <UserOutlined />, color: 'var(--color-text-main)' },
-    { id: 'active', title: "Active Subscriptions", value: summary?.activeSubscriptions || 0, prefix: <FileSyncOutlined />, color: 'var(--color-success)' },
-    { id: 'upcoming', title: "Upcoming Renewals", value: summary?.upcomingRenewals || 0, prefix: <ClockCircleOutlined />, color: 'var(--color-warning)' },
-    { id: 'expired', title: "Expired Subscriptions", value: summary?.expiredSubscriptions || 0, prefix: <ExclamationCircleOutlined />, color: '#ff4d4f' }
   ];
 
   const openDetails = (item: any) => {
@@ -129,8 +135,10 @@ const AdminDashboard: React.FC = () => {
     switch (metricId) {
       case 'revenue': return <DollarOutlined />;
       case 'customers': return <UserOutlined />;
+      case 'new_customers': return <RocketOutlined style={{ color: 'var(--color-primary)' }} />;
       case 'active': return <CheckCircleFilled style={{ color: 'var(--color-success)' }} />;
       case 'upcoming': return <ClockCircleFilled style={{ color: 'var(--color-warning)' }} />;
+      case 'expected': return <ClockCircleOutlined style={{ color: 'var(--color-warning)' }} />;
       case 'expired': return <ExclamationCircleFilled style={{ color: '#ff4d4f' }} />;
       default: return <InfoCircleOutlined />;
     }
@@ -218,11 +226,31 @@ const AdminDashboard: React.FC = () => {
                 </Flex>
             )
         );
+      case 'new_customers':
+        return renderAdaptiveDetail(
+            cLoading,
+            cData?.data || [],
+            [
+              { title: 'Name', dataIndex: 'name' },
+              { title: 'Phone', dataIndex: 'phone' },
+              { title: 'Joined', dataIndex: 'createdAt', render: (val) => new Date(val).toLocaleDateString() }
+            ],
+            (item) => (
+                <Flex justify="space-between" align="center">
+                    <Space orientation="vertical" size={0}>
+                        <Text strong style={{ fontSize: '14px' }}>{item.name}</Text>
+                        <Text type="secondary" style={{ fontSize: '11px' }}>{item.email || 'No Email'}</Text>
+                    </Space>
+                    <DoubleRightOutlined style={{ color: 'var(--color-text-light)', fontSize: '12px' }} />
+                </Flex>
+            )
+        );
       case 'active':
       case 'expired':
       case 'upcoming':
-        const currentData = activeMetric === 'active' ? activeSubs : (activeMetric === 'expired' ? expiredSubs : upcomingSubs);
-        const currentLoading = activeMetric === 'active' ? asLoading : (activeMetric === 'expired' ? esLoading : usLoading);
+      case 'expected':
+        const currentData = activeMetric === 'active' ? activeSubs : (activeMetric === 'expired' ? expiredSubs : (activeMetric === 'upcoming' ? upcomingSubs : pendingSubs));
+        const currentLoading = activeMetric === 'active' ? asLoading : (activeMetric === 'expired' ? esLoading : (activeMetric === 'upcoming' ? usLoading : psLoading));
         
         return renderAdaptiveDetail(
             currentLoading,
@@ -432,7 +460,7 @@ const AdminDashboard: React.FC = () => {
                     </>
                 )}
 
-                {activeMetric === 'customers' && (
+                {(activeMetric === 'customers' || activeMetric === 'new_customers') && (
                      <>
                         <Flex vertical gap={4}>
                             <Text type="secondary" style={{ fontSize: '10px', textTransform: 'uppercase' }}>Customer Profile</Text>
@@ -459,7 +487,7 @@ const AdminDashboard: React.FC = () => {
                     </>
                 )}
 
-                {(activeMetric === 'active' || activeMetric === 'expired' || activeMetric === 'upcoming') && (
+                {(activeMetric === 'active' || activeMetric === 'expired' || activeMetric === 'upcoming' || activeMetric === 'expected') && (
                      <>
                         <Flex vertical gap={4}>
                             <Text type="secondary" style={{ fontSize: '10px', textTransform: 'uppercase' }}>Subscription Audit</Text>

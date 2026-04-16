@@ -18,20 +18,29 @@ export class CreateServiceDto {
 
   @ApiProperty()
   @IsString()
-  category: string;
+  @IsOptional()
+  category?: string;
 
-  @ApiProperty({ enum: PricingType })
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  categoryId?: string;
+
+  @ApiPropertyOptional({ enum: PricingType })
+  @IsOptional()
   @IsEnum(PricingType)
-  pricingType: PricingType;
+  pricingType?: PricingType;
 
-  @ApiProperty({ enum: DurationType })
+  @ApiPropertyOptional({ enum: DurationType })
+  @IsOptional()
   @IsEnum(DurationType)
-  durationType: DurationType;
+  durationType?: DurationType;
 
-  @ApiProperty()
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsNumber()
   @Min(0)
-  basePrice: number;
+  basePrice?: number;
 
   @ApiPropertyOptional({ default: true })
   @IsOptional()
@@ -50,6 +59,11 @@ export class UpdateServiceDto {
   @IsOptional()
   @IsString()
   category?: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  categoryId?: string;
 
   @ApiPropertyOptional({ enum: PricingType })
   @IsOptional()

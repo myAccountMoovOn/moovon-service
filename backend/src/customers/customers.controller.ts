@@ -57,11 +57,13 @@ export class CustomersController {
     @Query('isActive') isActive?: string,
     @Query('from') from?: string,
     @Query('to') to?: string,
+    @Query('hasSubscriptions') hasSubscriptions?: string,
   ) {
     const pageNumber = page ? parseInt(page, 10) : 1;
     const limitNumber = limit ? parseInt(limit, 10) : 10;
     const isActiveBool = isActive === 'true' ? true : (isActive === 'false' ? false : undefined);
-    return this.customersService.findAll(pageNumber, limitNumber, search, isActiveBool, from, to);
+    const hasSubsBool = hasSubscriptions === 'true' ? true : (hasSubscriptions === 'false' ? false : undefined);
+    return this.customersService.findAll(pageNumber, limitNumber, search, isActiveBool, from, to, hasSubsBool);
   }
 
   @ApiOperation({ summary: 'Get a specific customer' })

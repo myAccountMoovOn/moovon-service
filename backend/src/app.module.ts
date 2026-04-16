@@ -18,6 +18,9 @@ import { Payment } from './payments/entities/payment.entity';
 import { NotificationLog } from './notifications/entities/notification-log.entity';
 import { Template } from './templates/entities/template.entity';
 import { AuditLog } from './common/entities/audit-log.entity';
+import { Category } from './categories/entities/category.entity';
+import { Package } from './packages/entities/package.entity';
+import { Coupon } from './coupons/entities/coupon.entity';
 
 // Modules
 import { AuthModule } from './auth/auth.module';
@@ -31,6 +34,9 @@ import { ReportsModule } from './reports/reports.module';
 import { QueuesModule } from './queues/queues.module';
 import { SchedulerModule } from './scheduler/scheduler.module';
 import { StorageModule } from './storage/storage.module';
+import { CategoriesModule } from './categories/categories.module';
+import { PackagesModule } from './packages/packages.module';
+import { CouponsModule } from './coupons/coupons.module';
 import { AuditInterceptor } from './common/interceptors/audit.interceptor';
 
 @Module({
@@ -57,6 +63,9 @@ import { AuditInterceptor } from './common/interceptors/audit.interceptor';
           NotificationLog,
           Template,
           AuditLog,
+          Category,
+          Package,
+          Coupon,
         ],
         synchronize: config.get<string>('NODE_ENV') !== 'production',
         logging: config.get<string>('NODE_ENV') === 'development',
@@ -82,6 +91,12 @@ import { AuditInterceptor } from './common/interceptors/audit.interceptor';
           host: config.get<string>('REDIS_HOST', '127.0.0.1'),
           port: config.get<number>('REDIS_PORT', 6379),
           password: config.get<string>('REDIS_PASSWORD') || undefined,
+          enableReadyCheck: false,
+          maxRetriesPerRequest: null,
+          retryStrategy: (times: number) => {
+            if (times > 3) return null; // stop retrying
+            return Math.min(times * 100, 3000);
+          },
         },
       }),
     }),
@@ -100,6 +115,9 @@ import { AuditInterceptor } from './common/interceptors/audit.interceptor';
     StorageModule,
     RedisModule,
     CommonModule,
+    CategoriesModule,
+    PackagesModule,
+    CouponsModule,
   ],
   providers: [
     {

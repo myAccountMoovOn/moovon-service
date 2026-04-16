@@ -239,7 +239,7 @@ export class ReportsService {
     }
 
     const payments = await query.getMany();
-    const totalRevenue = payments.reduce((sum, p) => sum + Number(p.amount), 0);
+    const totalRevenue = payments.reduce((sum: number, p: Payment) => sum + Number(p.amount), 0);
 
     return { totalRevenue, payments };
   }
@@ -250,10 +250,23 @@ export class ReportsService {
     next30DaysDate.setDate(next30DaysDate.getDate() + 30);
     const next30DaysStr = next30DaysDate.toISOString().split('T')[0];
 
+    // Helper for date filtering in counts
+    const addDateFilter = (qb: any, field: string = 'sub.createdAt') => {
+      if (from && to) {
+        const fromDate = new Date(from);
+        const toDate = new Date(to);
+        toDate.setUTCHours(23, 59, 59, 999);
+        qb.andWhere(`${field} BETWEEN :from AND :to`, { from: fromDate, to: toDate });
+      }
+      return qb;
+    };
+
     const paymentQuery = this.paymentRepo.createQueryBuilder('payment')
-      .where('payment.status = :status', { status: PaymentRecordStatus.SUCCESS });
+      .where('payment.status = :paymentStatus', { paymentStatus: PaymentRecordStatus.SUCCESS });
 
     const customerQuery = this.customerRepo.createQueryBuilder('customer');
+    
+    const subQueryBase = this.subRepo.createQueryBuilder('sub');
 
     if (from && to) {
       const fromDate = new Date(from);
@@ -264,19 +277,61 @@ export class ReportsService {
       customerQuery.andWhere('customer.createdAt BETWEEN :from AND :to', { from: fromDate, to: toDate });
     }
 
-    const [totalCustomers, successfulPayments, activeSubs, expiredSubs, upcomingRenewals] = await Promise.all([
+    const [
+      absoluteTotalCustomers, 
+      newCustomers, 
+      successfulPayments, 
+      activeSubs, 
+      expiredSubs, 
+      upcomingRenewals, 
+      filteredSubscriptions
+    ] = await Promise.all([
+      this.customerRepo.createQueryBuilder('customer')
+        .where(qb => {
+          const subQuery = qb.subQuery()
+            .select('1')
+            .from(Subscription, 'sub')
+            .where('sub.customerId = customer.id')
+            .getQuery();
+          return 'EXISTS ' + subQuery;
+        })
+        .getCount(),
       customerQuery.getCount(),
       paymentQuery.getMany(),
-      this.subRepo.createQueryBuilder('sub').where('sub.endDate >= :nowStr', { nowStr }).getCount(),
-      this.subRepo.createQueryBuilder('sub').where('sub.endDate < :nowStr', { nowStr }).getCount(),
-      this.subRepo.createQueryBuilder('sub').where('sub.endDate BETWEEN :nowStr AND :next30DaysStr', { nowStr, next30DaysStr }).getCount(),
+      // Active: (endDate >= now OR NULL) AND paid AND respects date filter
+      addDateFilter(
+        this.subRepo.createQueryBuilder('sub')
+          .where('(sub.endDate >= :nowStr OR sub.endDate IS NULL)', { nowStr })
+          .andWhere('sub.paymentStatus = :paidStatus', { paidStatus: 'paid' }),
+        'sub.startDate'
+      ).getCount(),
+      // Expired: endDate < now AND respects date filter
+      addDateFilter(
+        this.subRepo.createQueryBuilder('sub')
+          .where('sub.endDate < :nowStr', { nowStr }),
+        'sub.endDate'
+      ).getCount(),
+      // Upcoming: endDate in next 30 days AND respects date filter
+      addDateFilter(
+        this.subRepo.createQueryBuilder('sub')
+          .where('sub.endDate BETWEEN :nowStr AND :next30DaysStr', { nowStr, next30DaysStr }),
+        'sub.endDate'
+      ).getCount(),
+      // For Expected Revenue calculation: Sum of ALL subscriptions in that period
+      addDateFilter(
+        this.subRepo.createQueryBuilder('sub'),
+        'sub.startDate'
+      ).getMany(),
     ]);
 
-    const totalRevenueValue = successfulPayments.reduce((sum, p) => sum + Number(p.amount), 0);
+    const totalRevenueValue = successfulPayments.reduce((sum: number, p: Payment) => sum + Number(p.amount), 0);
+    const expectedRevenueValue = filteredSubscriptions.reduce((sum: number, s: Subscription) => sum + Number(s.amount), 0);
 
     return {
-      totalCustomers: Number(totalCustomers),
+      totalCustomers: Number(absoluteTotalCustomers),
+      newCustomers: Number(newCustomers),
       totalRevenue: totalRevenueValue,
+      expectedRevenue: expectedRevenueValue,
       activeSubscriptions: Number(activeSubs),
       expiredSubscriptions: Number(expiredSubs),
       upcomingRenewals: Number(upcomingRenewals),
