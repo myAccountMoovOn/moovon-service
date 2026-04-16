@@ -268,19 +268,33 @@ export class ReportsService {
     
     const subQueryBase = this.subRepo.createQueryBuilder('sub');
 
+    const absolutePaymentQuery = this.paymentRepo.createQueryBuilder('payment')
+      .where('payment.status = :paymentStatus', { paymentStatus: PaymentRecordStatus.SUCCESS });
+
     if (from && to) {
       const fromDate = new Date(from);
       const toDate = new Date(to);
       toDate.setUTCHours(23, 59, 59, 999);
       
       paymentQuery.andWhere('payment.paidAt BETWEEN :from AND :to', { from: fromDate, to: toDate });
-      customerQuery.andWhere('customer.createdAt BETWEEN :from AND :to', { from: fromDate, to: toDate });
+      
+      // New Customer definition: Customers who started a subscription in this period
+      customerQuery.andWhere(qb => {
+        const subQuery = qb.subQuery()
+          .select('1')
+          .from(Subscription, 'sub')
+          .where('sub.customerId = customer.id')
+          .andWhere('sub.startDate BETWEEN :from AND :to', { from: fromDate, to: toDate })
+          .getQuery();
+        return 'EXISTS ' + subQuery;
+      });
     }
 
     const [
       absoluteTotalCustomers, 
       newCustomers, 
-      successfulPayments, 
+      allSuccessfulPayments, 
+      filteredPayments, 
       activeSubs, 
       expiredSubs, 
       upcomingRenewals, 
@@ -297,20 +311,17 @@ export class ReportsService {
         })
         .getCount(),
       customerQuery.getCount(),
+      absolutePaymentQuery.getMany(),
       paymentQuery.getMany(),
-      // Active: (endDate >= now OR NULL) AND paid AND respects date filter
-      addDateFilter(
-        this.subRepo.createQueryBuilder('sub')
-          .where('(sub.endDate >= :nowStr OR sub.endDate IS NULL)', { nowStr })
-          .andWhere('sub.paymentStatus = :paidStatus', { paidStatus: 'paid' }),
-        'sub.startDate'
-      ).getCount(),
-      // Expired: endDate < now AND respects date filter
-      addDateFilter(
-        this.subRepo.createQueryBuilder('sub')
-          .where('sub.endDate < :nowStr', { nowStr }),
-        'sub.endDate'
-      ).getCount(),
+      // Active: (endDate >= now OR NULL) AND paid - ABSOLUTE (no date filter)
+      this.subRepo.createQueryBuilder('sub')
+        .where('(sub.endDate >= :nowStr OR sub.endDate IS NULL)', { nowStr })
+        .andWhere('sub.paymentStatus = :paidStatus', { paidStatus: 'paid' })
+        .getCount(),
+      // Expired: endDate < now - ABSOLUTE (no date filter)
+      this.subRepo.createQueryBuilder('sub')
+        .where('sub.endDate < :nowStr', { nowStr })
+        .getCount(),
       // Upcoming: endDate in next 30 days AND respects date filter
       addDateFilter(
         this.subRepo.createQueryBuilder('sub')
@@ -324,13 +335,15 @@ export class ReportsService {
       ).getMany(),
     ]);
 
-    const totalRevenueValue = successfulPayments.reduce((sum: number, p: Payment) => sum + Number(p.amount), 0);
+    const totalRevenueValue = allSuccessfulPayments.reduce((sum: number, p: Payment) => sum + Number(p.amount), 0);
+    const newRevenueValue = filteredPayments.reduce((sum: number, p: Payment) => sum + Number(p.amount), 0);
     const expectedRevenueValue = filteredSubscriptions.reduce((sum: number, s: Subscription) => sum + Number(s.amount), 0);
 
     return {
       totalCustomers: Number(absoluteTotalCustomers),
       newCustomers: Number(newCustomers),
       totalRevenue: totalRevenueValue,
+      newRevenue: newRevenueValue,
       expectedRevenue: expectedRevenueValue,
       activeSubscriptions: Number(activeSubs),
       expiredSubscriptions: Number(expiredSubs),

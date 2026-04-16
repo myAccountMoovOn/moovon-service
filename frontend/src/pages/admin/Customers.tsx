@@ -111,7 +111,7 @@ const Customers: React.FC = () => {
       dataIndex: 'name',
       fixed: 'left' as const,
       render: (_: any, record: Customer) => (
-        <Space orientation="vertical" size={0}>
+        <Space direction="vertical" size={0}>
           <span style={{ fontWeight: 'bold' }}>{record.name}</span>
           <span style={{ fontSize: '12px', color: '#8c8c8c' }}>{record.email}</span>
         </Space>
@@ -148,7 +148,7 @@ const Customers: React.FC = () => {
       fixed: 'right' as const,
       width: 120,
       render: (_: any, record: Customer) => (
-        <Space orientation="horizontal" size="middle">
+        <Space direction="horizontal" size="middle">
           <Button 
             icon={<EyeOutlined />} 
             size="small" 
@@ -241,7 +241,7 @@ const Customers: React.FC = () => {
         >
           Customers
         </Title>
-        <Space orientation="horizontal" wrap={isMobile} style={{ width: isMobile ? '100%' : 'auto' }}>
+        <Space direction="horizontal" wrap={isMobile} style={{ width: isMobile ? '100%' : 'auto' }}>
           <Upload
             name="file"
             action={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api/v1'}/customers/bulk-import`}
@@ -588,7 +588,7 @@ const Customers: React.FC = () => {
             </Form.Item>
           )}
 
-          <Divider orientation="left" style={{ fontSize: '12px' }}>Communication Channels</Divider>
+          <Divider orientation={"left" as any} style={{ fontSize: '12px' }}>Communication Channels</Divider>
           <Flex gap={24} style={{ marginBottom: 24 }}>
             <Form.Item name="notificationEmail" label="Email" valuePropName="checked" initialValue={true}>
               <Switch checkedChildren="ON" unCheckedChildren="OFF" />

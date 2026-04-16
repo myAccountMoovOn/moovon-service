@@ -520,7 +520,7 @@ const Subscriptions: React.FC = () => {
 
       <Modal
         title={
-          <Space orientation="vertical" size={2}>
+          <Space direction="vertical" size={2}>
             <Text strong style={{ fontSize: '18px' }}>Assign Service</Text>
             <Text type="secondary" style={{ fontSize: '12px' }}>Assign a new service to an existing customer</Text>
           </Space>
@@ -674,7 +674,7 @@ const Subscriptions: React.FC = () => {
             />
           </Form.Item>
 
-          <Divider orientation="left" style={{ fontSize: '12px' }}>Communication Channels</Divider>
+          <Divider orientation={"left" as any} style={{ fontSize: '12px' }}>Communication Channels</Divider>
           <Flex gap={24} style={{ marginBottom: 16 }}>
             <Form.Item name="notificationEmail" label="Email" valuePropName="checked" initialValue={true}>
               <Switch checkedChildren="ON" unCheckedChildren="OFF" />

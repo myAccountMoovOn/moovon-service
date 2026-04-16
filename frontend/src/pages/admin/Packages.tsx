@@ -309,7 +309,7 @@ const Packages: React.FC = () => {
 
       <Modal
         title={
-          <Space orientation="vertical" size={2}>
+          <Space direction="vertical" size={2}>
             <Text strong style={{ fontSize: '18px' }}>{editingPkg ? "Edit Package" : "Create Package"}</Text>
             <Text type="secondary" style={{ fontSize: '12px' }}>Configure your product bundle details</Text>
           </Space>

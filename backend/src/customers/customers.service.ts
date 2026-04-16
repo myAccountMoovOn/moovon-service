@@ -139,7 +139,15 @@ export class CustomersService {
       const fromDate = new Date(from);
       const toDate = new Date(to);
       toDate.setUTCHours(23, 59, 59, 999);
-      query.andWhere('customer.createdAt BETWEEN :from AND :to', { from: fromDate, to: toDate });
+      query.andWhere(qb => {
+        const subQuery = qb.subQuery()
+          .select('1')
+          .from(Subscription, 'sub')
+          .where('sub.customerId = customer.id')
+          .andWhere('sub.startDate BETWEEN :from AND :to', { from: fromDate, to: toDate })
+          .getQuery();
+        return 'EXISTS ' + subQuery;
+      });
     }
 
     // Include subscriptions count

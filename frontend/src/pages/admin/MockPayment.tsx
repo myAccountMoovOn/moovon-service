@@ -58,7 +58,7 @@ const MockPayment: React.FC = () => {
           <Text type="secondary">MOCK PAYMENT GATEWAY</Text>
         </div>
 
-        <Space orientation="vertical" style={{ width: '100%' }} size="large">
+        <Space direction="vertical" style={{ width: '100%' }} size="large">
           <Card size="small" style={{ background: '#fafafa' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
               <Text type="secondary">Order ID</Text>

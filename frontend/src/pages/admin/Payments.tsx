@@ -119,7 +119,7 @@ const Payments: React.FC = () => {
         title: 'Reference',
         key: 'reference',
         render: (_: any, record: Payment) => (
-           <Space orientation="vertical" size={0}>
+           <Space direction="vertical" size={0}>
               <Text style={{ fontSize: '11px' }} type="secondary">TX: {record.transactionId || 'PENDING'}</Text>
               <Tag color="blue">{record.subscriptionId.split('-')[0].toUpperCase()}</Tag>
            </Space>
@@ -130,7 +130,7 @@ const Payments: React.FC = () => {
       key: 'details',
       responsive: ['md' as const],
       render: (_: any, record: Payment) => (
-        <Space orientation="vertical" size={0}>
+        <Space direction="vertical" size={0}>
            <Text strong>{(record as any).subscription?.customer?.name}</Text>
            <Text style={{ fontSize: '12px' }} type="secondary">{(record as any).subscription?.service?.name}</Text>
         </Space>
@@ -209,7 +209,7 @@ const Payments: React.FC = () => {
             </div>
             <div>
               <Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>Billed Within</Text>
-              <Space orientation="horizontal" wrap={isMobile}>
+              <Space direction="horizontal" wrap={isMobile}>
                 <Radio.Group value={period} onChange={e => setPeriod(e.target.value)} optionType="button" buttonStyle="solid" size="large">
                   <Radio.Button value="all">All</Radio.Button>
                   <Radio.Button value="today">Today</Radio.Button>
@@ -303,7 +303,7 @@ const Payments: React.FC = () => {
                             style={{ backgroundColor: 'var(--color-primary-bg)', color: 'var(--color-primary)' }}
                             icon={<UserOutlined />}
                         />
-                        <Space orientation="vertical" size={0}>
+                        <Space direction="vertical" size={0}>
                             <Text strong style={{ fontSize: '15px' }}>{(item as any).subscription?.customer?.name}</Text>
                             <Text type="secondary" style={{ fontSize: '12px' }}>{dayjs(item.paidAt).format('DD MMM')}</Text>
                         </Space>
@@ -339,7 +339,7 @@ const Payments: React.FC = () => {
                 <Card styles={{ body: { padding: '24px' } }} style={{ borderRadius: '16px', background: 'linear-gradient(135deg, #ffffff 0%, #f9fbff 100%)', border: 'none' }} className="card-shadow">
                     <Flex vertical gap={16}>
                         <Flex justify="space-between" align="center">
-                            <Space orientation="vertical" size={2}>
+                            <Space direction="vertical" size={2}>
                                 <Text type="secondary" style={{ fontSize: '12px' }}><CalendarOutlined /> BILLED DATE</Text>
                                 <Text strong style={{ fontSize: '16px' }}>{dayjs(selectedPayment.paidAt).format('MMMM D, YYYY')}</Text>
                             </Space>

@@ -120,10 +120,11 @@ const AdminDashboard: React.FC = () => {
     { id: 'customers', title: "Total Customers", value: summary?.totalCustomers || 0, prefix: <UserOutlined />, color: 'var(--color-text-main)' },
     { id: 'active', title: "Total Active", value: summary?.activeSubscriptions || 0, prefix: <FileSyncOutlined />, color: 'var(--color-success)' },
     { id: 'expired', title: "Total Expired", value: summary?.expiredSubscriptions || 0, prefix: <ExclamationCircleOutlined />, color: '#ff4d4f' },
+    { id: 'revenue', title: "Total Revenue", value: summary?.totalRevenue || 0, prefix: "₹", precision: 2, color: 'var(--color-primary)' },
     { id: 'new_customers', title: "New Customer", value: summary?.newCustomers || 0, prefix: <RocketOutlined />, color: 'var(--color-primary)' },
+    { id: 'new_revenue', title: "New Revenue", value: summary?.newRevenue || 0, prefix: "₹", precision: 2, color: 'var(--color-success)' },
     { id: 'upcoming', title: "Upcoming Renewable", value: summary?.upcomingRenewals || 0, prefix: <ClockCircleOutlined />, color: 'var(--color-warning)' },
     { id: 'expected', title: "Expected Revenue", value: summary?.expectedRevenue || 0, prefix: "₹", precision: 2, color: 'var(--color-warning)' },
-    { id: 'revenue', title: "Total Revenue", value: summary?.totalRevenue || 0, prefix: "₹", precision: 2, color: 'var(--color-primary)' },
   ];
 
   const openDetails = (item: any) => {
@@ -133,7 +134,8 @@ const AdminDashboard: React.FC = () => {
 
   const getMetricIcon = (metricId: string) => {
     switch (metricId) {
-      case 'revenue': return <DollarOutlined />;
+      case 'revenue':
+      case 'new_revenue': return <DollarOutlined />;
       case 'customers': return <UserOutlined />;
       case 'new_customers': return <RocketOutlined style={{ color: 'var(--color-primary)' }} />;
       case 'active': return <CheckCircleFilled style={{ color: 'var(--color-success)' }} />;
@@ -189,6 +191,7 @@ const AdminDashboard: React.FC = () => {
   const renderDetailTable = () => {
     switch (activeMetric) {
       case 'revenue':
+      case 'new_revenue':
         return renderAdaptiveDetail(
             pLoading, 
             pData?.data || [], 
@@ -199,7 +202,7 @@ const AdminDashboard: React.FC = () => {
             ],
             (item) => (
                 <Flex justify="space-between" align="center">
-                    <Space orientation="vertical" size={0}>
+                    <Space direction="vertical" size={0}>
                         <Text strong style={{ fontSize: '14px' }}>{item.subscription?.customer?.name}</Text>
                         <Text type="secondary" style={{ fontSize: '11px' }}>{item.subscription?.service?.name}</Text>
                     </Space>
@@ -218,7 +221,7 @@ const AdminDashboard: React.FC = () => {
             ],
             (item) => (
                 <Flex justify="space-between" align="center">
-                    <Space orientation="vertical" size={0}>
+                    <Space direction="vertical" size={0}>
                         <Text strong style={{ fontSize: '14px' }}>{item.name}</Text>
                         <Text type="secondary" style={{ fontSize: '11px' }}>{item.email || 'No Email'}</Text>
                     </Space>
@@ -237,7 +240,7 @@ const AdminDashboard: React.FC = () => {
             ],
             (item) => (
                 <Flex justify="space-between" align="center">
-                    <Space orientation="vertical" size={0}>
+                    <Space direction="vertical" size={0}>
                         <Text strong style={{ fontSize: '14px' }}>{item.name}</Text>
                         <Text type="secondary" style={{ fontSize: '11px' }}>{item.email || 'No Email'}</Text>
                     </Space>
@@ -262,11 +265,11 @@ const AdminDashboard: React.FC = () => {
             ],
             (item) => (
                 <Flex justify="space-between" align="center">
-                    <Space orientation="vertical" size={0}>
+                    <Space direction="vertical" size={0}>
                         <Text strong style={{ fontSize: '14px' }}>{item.customer?.name}</Text>
                         <Text type="secondary" style={{ fontSize: '11px' }}>{item.service?.name}</Text>
                     </Space>
-                    <Space orientation="vertical" align="end" size={0}>
+                    <Space direction="vertical" align="end" size={0}>
                         {activeMetric === 'expired' ? (
                             <Tag color="error" style={{ margin: 0 }}>EXPIRED</Tag>
                         ) : (
@@ -350,7 +353,7 @@ const AdminDashboard: React.FC = () => {
             key={item.id}
             xs={12} 
             sm={12} 
-            lg={activeMetric === item.id ? 6 : 4}
+            lg={6}
             style={{ minWidth: 0 }}
           >
             <Card 
@@ -359,7 +362,7 @@ const AdminDashboard: React.FC = () => {
               style={{ 
                 height: '100%', 
                 cursor: 'pointer',
-                border: activeMetric === item.id ? '2px solid var(--color-primary)' : '1px solid var(--color-border)',
+                border: activeMetric === item.id ? '1.5px solid var(--color-primary)' : '1.5px solid var(--color-border)',
                 transition: 'all 0.3s',
                 backgroundColor: activeMetric === item.id ? 'rgba(var(--color-primary-rgb), 0.02)' : '#fff',
                 borderRadius: '12px',

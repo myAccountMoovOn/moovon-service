@@ -201,7 +201,7 @@ const Notifications: React.FC = () => {
                                 }}
                                 icon={getChannelIcon(item.channel)}
                             />
-                            <Space orientation="vertical" size={0}>
+                            <Space direction="vertical" size={0}>
                                 <Text strong style={{ fontSize: '14px' }}>{item.templateType.replace(/_/g, ' ').toUpperCase()}</Text>
                                 <Text type="secondary" style={{ fontSize: '11px' }}>{dayjs(item.createdAt).format('MMM D, HH:mm')}</Text>
                             </Space>

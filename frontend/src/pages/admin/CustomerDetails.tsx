@@ -73,7 +73,7 @@ const CustomerDetails: React.FC = () => {
       title: 'Valid To',
       dataIndex: 'endDate',
       render: (date: string) => (
-        <Space orientation="horizontal">
+        <Space direction="horizontal">
           {dayjs(date).format('DD MMM YYYY')}
           {dayjs(date).isBefore(dayjs()) && <Badge status="error" text="Expired" />}
         </Space>
@@ -152,7 +152,7 @@ const CustomerDetails: React.FC = () => {
           <Card 
             className="card-shadow" 
             title={!isMobile && (
-              <Space orientation="horizontal">
+              <Space direction="horizontal">
                 <UserOutlined />
                 <span>Personal Profile</span>
               </Space>
@@ -191,7 +191,7 @@ const CustomerDetails: React.FC = () => {
           <Card 
              className="card-shadow"
              title={
-               <Space orientation="horizontal">
+               <Space direction="horizontal">
                  <FileTextOutlined />
                  <span>Subscription History</span>
                </Space>
@@ -215,7 +215,7 @@ const CustomerDetails: React.FC = () => {
                   <div style={{ padding: '16px', borderBottom: '1px solid #f0f0f0' }}>
                     <Flex vertical gap={12}>
                       <Flex justify="space-between" align="center">
-                        <Space orientation="horizontal" size={8}>
+                        <Space direction="horizontal" size={8}>
                           <RocketOutlined style={{ color: 'var(--color-primary)' }} />
                           <Text strong style={{ fontSize: '15px' }}>{item.service?.name}</Text>
                         </Space>
@@ -225,7 +225,7 @@ const CustomerDetails: React.FC = () => {
                       </Flex>
 
                       <Flex justify="space-between" align="flex-end">
-                        <Space orientation="vertical" size={2}>
+                        <Space direction="vertical" size={2}>
                           <Text type="secondary" style={{ fontSize: '10px' }}><CalendarOutlined /> DURATION</Text>
                           <Text style={{ fontSize: '12px' }}>
                             {dayjs(item.startDate).format('D MMM')} - {dayjs(item.endDate).format('D MMM YYYY')}
@@ -234,7 +234,7 @@ const CustomerDetails: React.FC = () => {
                             <Tag color="error" style={{ fontSize: '10px', marginTop: 4 }}>EXPIRED</Tag>
                           )}
                         </Space>
-                        <Space orientation="vertical" size={2} style={{ textAlign: 'right' }}>
+                        <Space direction="vertical" size={2} style={{ textAlign: 'right' }}>
                           <Text type="secondary" style={{ fontSize: '10px' }}><DollarOutlined /> AMOUNT</Text>
                           <Text strong style={{ fontSize: '16px', color: 'var(--color-primary)' }}>₹{item.amount.toLocaleString()}</Text>
                         </Space>
