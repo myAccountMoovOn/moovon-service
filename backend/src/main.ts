@@ -23,7 +23,6 @@ async function bootstrap(): Promise<void> {
     }),
   );
 
-  //main.ts
 
   // CORS
   const frontendUrl = configService.get<string>('FRONTEND_URL', 'http://localhost:5173');
