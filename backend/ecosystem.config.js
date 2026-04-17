@@ -1,13 +1,13 @@
 module.exports = {
   apps: [
     {
-      name: 'nestjs-app',
-      script: 'dist/src/main.js',
-      instances: 'max',        // or set a number like 2
+      name: 'moovon-backend',
+      script: 'dist/main.js',
+      instances: 'max',
       exec_mode: 'cluster',
       env: {
         NODE_ENV: 'production',
-        PORT: 3000,
+        PORT: 3001,
       },
     },
   ],
