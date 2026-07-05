@@ -37,7 +37,10 @@ import { StorageModule } from './storage/storage.module';
 import { CategoriesModule } from './categories/categories.module';
 import { PackagesModule } from './packages/packages.module';
 import { CouponsModule } from './coupons/coupons.module';
+import { CompaniesModule } from './companies/companies.module';
 import { AuditInterceptor } from './common/interceptors/audit.interceptor';
+
+import { Company } from './companies/entities/company.entity';
 
 @Module({
   imports: [
@@ -66,6 +69,7 @@ import { AuditInterceptor } from './common/interceptors/audit.interceptor';
           Category,
           Package,
           Coupon,
+          Company,
         ],
         synchronize: config.get<string>('NODE_ENV') !== 'production',
         logging: config.get<string>('NODE_ENV') === 'development',
@@ -94,8 +98,8 @@ import { AuditInterceptor } from './common/interceptors/audit.interceptor';
           enableReadyCheck: false,
           maxRetriesPerRequest: null,
           retryStrategy: (times: number) => {
-            if (times > 3) return null; // stop retrying
-            return Math.min(times * 100, 3000);
+            // Disabled temporarily to prevent ECONNREFUSED spam on Windows
+            return null;
           },
         },
       }),
@@ -118,6 +122,7 @@ import { AuditInterceptor } from './common/interceptors/audit.interceptor';
     CategoriesModule,
     PackagesModule,
     CouponsModule,
+    CompaniesModule,
   ],
   providers: [
     {

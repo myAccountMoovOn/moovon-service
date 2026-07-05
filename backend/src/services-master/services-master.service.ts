@@ -1,8 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Service } from './entities/service.entity';
 import { CreateServiceDto, UpdateServiceDto } from './dto/service.dto';
+import { AuthenticatedUser } from '../common/guards/supabase-auth.guard';
 
 @Injectable()
 export class ServicesMasterService {
@@ -27,9 +28,14 @@ export class ServicesMasterService {
     from?: string,
     to?: string,
     categoryId?: string,
+    user?: AuthenticatedUser,
   ) {
     const query = this.serviceRepo.createQueryBuilder('service')
       .leftJoinAndSelect('service.categoryRef', 'categoryRef');
+
+    if (user && user.role !== 'admin' && user.companyId) {
+      query.andWhere('service.company_id = :companyId', { companyId: user.companyId });
+    }
 
     if (search) {
       query.andWhere(
@@ -92,13 +98,18 @@ export class ServicesMasterService {
     return service;
   }
 
-  async update(id: string, dto: UpdateServiceDto) {
+  async update(id: string, dto: UpdateServiceDto, user?: AuthenticatedUser) {
     const service = await this.findOne(id);
+    
+    if (user && user.role === 'provider' && service.companyId !== user.companyId) {
+      throw new ForbiddenException('You can only update services belonging to your company');
+    }
+
     Object.assign(service, dto);
     return this.serviceRepo.save(service);
   }
 
-  async remove(id: string) {
+  async remove(id: string, user?: AuthenticatedUser) {
     const service = await this.serviceRepo.findOne({
       where: { id },
       relations: ['subscriptions'],
@@ -106,6 +117,10 @@ export class ServicesMasterService {
 
     if (!service) {
       throw new NotFoundException(`Service with ID ${id} not found`);
+    }
+
+    if (user && user.role === 'provider' && service.companyId !== user.companyId) {
+      throw new ForbiddenException('You can only delete services belonging to your company');
     }
 
     if (service.subscriptions && service.subscriptions.length > 0) {

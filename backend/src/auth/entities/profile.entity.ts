@@ -5,11 +5,15 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   OneToOne,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 import { Customer } from '../../customers/entities/customer.entity';
+import { Company } from '../../companies/entities/company.entity';
 
 export enum UserRole {
-  ADMIN = 'admin',
+  SUPER_ADMIN = 'super_admin',
+  PROVIDER = 'provider',
   CUSTOMER = 'customer',
 }
 
@@ -20,6 +24,13 @@ export class Profile {
 
   @Column({ type: 'enum', enum: UserRole })
   role: UserRole;
+
+  @Column({ name: 'company_id', type: 'uuid', nullable: true })
+  companyId: string | null;
+
+  @ManyToOne(() => Company, (company) => company.profiles, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'company_id' })
+  company?: Company;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

@@ -32,6 +32,11 @@ export class CreateCustomerDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
+  companyId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
   address?: string;
 
   @ApiPropertyOptional()
@@ -92,6 +97,11 @@ export class UpdateCustomerDto {
   @IsOptional()
   @IsString()
   companyName?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  companyId?: string;
 
   @ApiPropertyOptional()
   @IsOptional()

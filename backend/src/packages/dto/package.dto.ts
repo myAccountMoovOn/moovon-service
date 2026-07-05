@@ -31,6 +31,11 @@ export class CreatePackageDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  companyId?: string;
 }
 
 export class UpdatePackageDto extends PartialType(CreatePackageDto) {}

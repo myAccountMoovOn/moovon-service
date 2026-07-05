@@ -57,6 +57,11 @@ export class CreateSubscriptionDto {
   @IsOptional()
   @IsUUID()
   couponId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  companyId?: string;
 }
 
 export class UpdateSubscriptionDto {

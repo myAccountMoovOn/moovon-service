@@ -244,7 +244,7 @@ export class ReportsService {
     return { totalRevenue, payments };
   }
 
-  async getDashboardSummary(from?: string, to?: string) {
+  async getDashboardSummary(from?: string, to?: string, companyId?: string | null) {
     const nowStr = new Date().toISOString().split('T')[0];
     const next30DaysDate = new Date();
     next30DaysDate.setDate(next30DaysDate.getDate() + 30);
@@ -260,16 +260,30 @@ export class ReportsService {
       }
       return qb;
     };
+    
+    // Helper for scoping by company
+    const scopeByCompany = (qb: any, field: string) => {
+      if (companyId) {
+        qb.andWhere(`${field} = :companyId`, { companyId });
+      }
+      return qb;
+    };
 
     const paymentQuery = this.paymentRepo.createQueryBuilder('payment')
+      .leftJoinAndSelect('payment.subscription', 'subscription')
       .where('payment.status = :paymentStatus', { paymentStatus: PaymentRecordStatus.SUCCESS });
+    scopeByCompany(paymentQuery, 'subscription.company_id');
 
     const customerQuery = this.customerRepo.createQueryBuilder('customer');
+    scopeByCompany(customerQuery, 'customer.company_id');
     
     const subQueryBase = this.subRepo.createQueryBuilder('sub');
+    scopeByCompany(subQueryBase, 'sub.company_id');
 
     const absolutePaymentQuery = this.paymentRepo.createQueryBuilder('payment')
+      .leftJoinAndSelect('payment.subscription', 'subscription')
       .where('payment.status = :paymentStatus', { paymentStatus: PaymentRecordStatus.SUCCESS });
+    scopeByCompany(absolutePaymentQuery, 'subscription.company_id');
 
     if (from && to) {
       const fromDate = new Date(from);
@@ -309,28 +323,39 @@ export class ReportsService {
             .getQuery();
           return 'EXISTS ' + subQuery;
         })
+        .andWhere(companyId ? 'customer.company_id = :companyId' : '1=1', { companyId })
         .getCount(),
       customerQuery.getCount(),
       absolutePaymentQuery.getMany(),
       paymentQuery.getMany(),
       // Active: (endDate >= now OR NULL) AND paid - ABSOLUTE (no date filter)
-      this.subRepo.createQueryBuilder('sub')
-        .where('(sub.endDate >= :nowStr OR sub.endDate IS NULL)', { nowStr })
-        .andWhere('sub.paymentStatus = :paidStatus', { paidStatus: 'paid' })
-        .getCount(),
+      scopeByCompany(
+        this.subRepo.createQueryBuilder('sub')
+          .where('(sub.endDate >= :nowStr OR sub.endDate IS NULL)', { nowStr })
+          .andWhere('sub.paymentStatus = :paidStatus', { paidStatus: 'paid' }),
+        'sub.company_id'
+      ).getCount(),
       // Expired: endDate < now - ABSOLUTE (no date filter)
-      this.subRepo.createQueryBuilder('sub')
-        .where('sub.endDate < :nowStr', { nowStr })
-        .getCount(),
+      scopeByCompany(
+        this.subRepo.createQueryBuilder('sub')
+          .where('sub.endDate < :nowStr', { nowStr }),
+        'sub.company_id'
+      ).getCount(),
       // Upcoming: endDate in next 30 days AND respects date filter
       addDateFilter(
-        this.subRepo.createQueryBuilder('sub')
-          .where('sub.endDate BETWEEN :nowStr AND :next30DaysStr', { nowStr, next30DaysStr }),
+        scopeByCompany(
+          this.subRepo.createQueryBuilder('sub')
+            .where('sub.endDate BETWEEN :nowStr AND :next30DaysStr', { nowStr, next30DaysStr }),
+          'sub.company_id'
+        ),
         'sub.endDate'
       ).getCount(),
       // For Expected Revenue calculation: Sum of ALL subscriptions in that period
       addDateFilter(
-        this.subRepo.createQueryBuilder('sub'),
+        scopeByCompany(
+          this.subRepo.createQueryBuilder('sub'),
+          'sub.company_id'
+        ),
         'sub.startDate'
       ).getMany(),
     ]);

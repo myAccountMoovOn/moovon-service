@@ -26,6 +26,11 @@ export class CreateServiceDto {
   @IsOptional()
   categoryId?: string;
 
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  companyId?: string;
+
   @ApiPropertyOptional({ enum: PricingType })
   @IsOptional()
   @IsEnum(PricingType)
@@ -64,6 +69,11 @@ export class UpdateServiceDto {
   @IsString()
   @IsOptional()
   categoryId?: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  companyId?: string;
 
   @ApiPropertyOptional({ enum: PricingType })
   @IsOptional()

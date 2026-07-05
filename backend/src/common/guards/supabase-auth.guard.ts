@@ -13,6 +13,7 @@ export interface AuthenticatedUser {
   id: string;
   email: string | undefined;
   role: string;
+  companyId: string | null;
 }
 
 export interface RequestWithUser extends Request {
@@ -52,13 +53,15 @@ export class SupabaseAuthGuard implements CanActivate {
     
     // Source of Truth: Fetch role from database profile
     let role = 'customer';
+    let companyId: string | null = null;
     try {
       const profiles = await this.dataSource.query(
-        'SELECT role FROM profiles WHERE id = $1',
+        'SELECT role, company_id FROM profiles WHERE id = $1',
         [supabaseUser.id],
       );
       if (profiles && profiles.length > 0) {
         role = profiles[0].role;
+        companyId = profiles[0].company_id || null;
       } else {
         // Fallback to metadata if DB record doesn't exist yet
         role = (supabaseUser.app_metadata?.['role'] as string | undefined) || 
@@ -74,6 +77,7 @@ export class SupabaseAuthGuard implements CanActivate {
       id: supabaseUser.id,
       email: supabaseUser.email,
       role,
+      companyId,
     };
 
     return true;

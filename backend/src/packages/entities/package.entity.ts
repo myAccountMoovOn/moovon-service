@@ -16,6 +16,13 @@ export class Package {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @Column({ name: 'company_id', type: 'uuid', nullable: true })
+  companyId: string | null;
+
+  @ManyToOne('Company', 'packages', { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'company_id' })
+  company?: any;
+
   @ManyToMany(() => Service, { onDelete: 'CASCADE' })
   @JoinTable({
     name: 'package_services_junction',

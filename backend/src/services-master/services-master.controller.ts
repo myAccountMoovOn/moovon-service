@@ -12,9 +12,10 @@ import {
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { ServicesMasterService } from './services-master.service';
 import { CreateServiceDto, UpdateServiceDto } from './dto/service.dto';
-import { SupabaseAuthGuard } from '../common/guards/supabase-auth.guard';
+import { SupabaseAuthGuard, AuthenticatedUser } from '../common/guards/supabase-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
 
 @ApiTags('Services Master')
 @ApiBearerAuth()
@@ -24,16 +25,20 @@ export class ServicesMasterController {
   constructor(private readonly servicesMasterService: ServicesMasterService) {}
 
   @ApiOperation({ summary: 'Create a new service' })
-  @Roles('admin')
+  @Roles('admin', 'provider')
   @Post()
-  create(@Body() createServiceDto: CreateServiceDto) {
+  create(@Body() createServiceDto: CreateServiceDto, @CurrentUser() user: AuthenticatedUser) {
+    if (user.role === 'provider' && user.companyId) {
+      createServiceDto.companyId = user.companyId;
+    }
     return this.servicesMasterService.create(createServiceDto);
   }
 
   @ApiOperation({ summary: 'Get all services (paginated)' })
-  @Roles('admin')
+  @Roles('admin', 'provider', 'customer')
   @Get()
   findAll(
+    @CurrentUser() user: AuthenticatedUser,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
     @Query('search') search?: string,
@@ -60,6 +65,7 @@ export class ServicesMasterController {
       from,
       to,
       categoryId,
+      user
     );
   }
 
@@ -71,16 +77,23 @@ export class ServicesMasterController {
   }
 
   @ApiOperation({ summary: 'Update a service' })
-  @Roles('admin')
+  @Roles('admin', 'provider')
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateServiceDto: UpdateServiceDto) {
-    return this.servicesMasterService.update(id, updateServiceDto);
+  update(
+    @Param('id') id: string, 
+    @Body() updateServiceDto: UpdateServiceDto,
+    @CurrentUser() user: AuthenticatedUser
+  ) {
+    return this.servicesMasterService.update(id, updateServiceDto, user);
   }
 
   @ApiOperation({ summary: 'Deactivate a service (soft delete)' })
-  @Roles('admin')
+  @Roles('admin', 'provider')
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.servicesMasterService.remove(id);
+  remove(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser
+  ) {
+    return this.servicesMasterService.remove(id, user);
   }
 }

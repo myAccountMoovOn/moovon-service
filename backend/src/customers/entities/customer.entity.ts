@@ -7,6 +7,7 @@ import {
   OneToOne,
   JoinColumn,
   OneToMany,
+  ManyToOne,
 } from 'typeorm';
 import { Profile } from '../../auth/entities/profile.entity';
 import { Subscription } from '../../subscriptions/entities/subscription.entity';
@@ -23,6 +24,13 @@ export class Customer {
   @OneToOne(() => Profile, (profile) => profile.customer)
   @JoinColumn({ name: 'user_id' })
   profile?: Profile;
+
+  @Column({ name: 'company_id', type: 'uuid', nullable: true })
+  companyId: string | null;
+
+  @ManyToOne('Company', 'customers', { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'company_id' })
+  company?: any;
 
   @Column({ type: 'varchar', length: 255 })
   name: string;
