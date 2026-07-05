@@ -45,6 +45,7 @@ const Login: React.FC = () => {
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', backgroundColor: 'var(--color-bg-sidebar)' }}>
       <Card style={{ width: 400 }} className="card-shadow">
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
+          <img src="/favicon.svg" alt="Moovon Logo" style={{ height: 80, marginBottom: 16 }} />
           <Title level={3} className="text-primary" style={{ margin: 0 }}>Moovon Service</Title>
           <Text type="secondary">Sign in to your account</Text>
         </div>
