@@ -28,11 +28,11 @@ import {
   List,
 } from 'react-native-paper';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { useAuthStore } from '../../store/authStore';
-import { useSubscriptionsStore, SubscriptionItem } from '../../store/subscriptionsStore';
-import { useCustomersStore } from '../../store/customersStore';
-import { useServicesStore } from '../../store/servicesStore';
-import { usePackagesStore } from '../../store/packagesStore';
+import { useAuthStore } from '../../../store/authStore';
+import { useSubscriptionsStore, SubscriptionItem } from '../../../store/subscriptionsStore';
+import { useCustomersStore } from '../../../store/customersStore';
+import { useServicesStore } from '../../../store/servicesStore';
+import { usePackagesStore } from '../../../store/packagesStore';
 
 type FilterStatus = 'all' | 'active' | 'expired' | 'upcoming';
 type PaymentStatus = 'all' | 'paid' | 'pending' | 'partial';

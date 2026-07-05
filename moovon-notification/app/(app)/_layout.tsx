@@ -1,20 +1,9 @@
-import { Tabs } from 'expo-router';
-import CustomTabBar from '../../components/ui/CustomTabBar';
+import { Stack } from 'expo-router';
 
-export default function AppLayout() {
+export default function AppStackLayout() {
   return (
-    <Tabs 
-      tabBar={props => <CustomTabBar {...props} />}
-      screenOptions={{ headerShown: false }}
-    >
-      <Tabs.Screen name="index" options={{ title: 'Dashboard' }} />
-      <Tabs.Screen name="services" options={{ title: 'Services' }} />
-      <Tabs.Screen name="customers" options={{ title: 'Customers' }} />
-      <Tabs.Screen name="subscriptions" options={{ title: 'Subscriptions' }} />
-      <Tabs.Screen name="profile" options={{ title: 'Profile' }} />
-      <Tabs.Screen name="drilldown" options={{ href: null, tabBarStyle: { display: 'none' } }} />
-      <Tabs.Screen name="packages" options={{ href: null, tabBarStyle: { display: 'none' } }} />
-      <Tabs.Screen name="payments" options={{ href: null, tabBarStyle: { display: 'none' } }} />
-    </Tabs>
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+    </Stack>
   );
 }

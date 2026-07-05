@@ -3,8 +3,8 @@ import { View, StyleSheet, ScrollView, RefreshControl, Platform } from 'react-na
 import { Text, useTheme, Surface, ActivityIndicator, IconButton, SegmentedButtons, TouchableRipple, Button } from 'react-native-paper';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRouter } from 'expo-router';
-import { useAuthStore } from '../../store/authStore';
-import { useDashboardStore } from '../../store/dashboardStore';
+import { useAuthStore } from '../../../store/authStore';
+import { useDashboardStore } from '../../../store/dashboardStore';
 
 export default function HomeScreen() {
   const theme = useTheme();
@@ -49,7 +49,7 @@ export default function HomeScreen() {
         style={styles.metricCard} 
         onPress={() => {
           setActiveMetric(id);
-          router.push(`/(app)/drilldown?metric=${id}`);
+          router.push(`/(app)/drilldown?metric=${id}` as any);
         }}
         borderless
       >
@@ -210,18 +210,6 @@ export default function HomeScreen() {
               )}
             </View>
           ) : null}
-
-          <View style={{ marginTop: 24, marginBottom: 12 }}>
-            <Button 
-              mode="contained" 
-              icon="cash-multiple" 
-              onPress={() => router.push('/(app)/payments')}
-              style={{ borderRadius: 12, paddingVertical: 4 }}
-              contentStyle={{ height: 48 }}
-            >
-              View Payments History
-            </Button>
-          </View>
         </ScrollView>
       ) : (
         <View style={styles.card}>

@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { useAuthStore } from '../store/authStore';
 
 // Create a configured axios instance
 export const api = axios.create({
@@ -13,6 +12,7 @@ export const api = axios.create({
 // Interceptor to inject Authorization token
 api.interceptors.request.use(
   (config) => {
+    const { useAuthStore } = require('../store/authStore');
     const session = useAuthStore.getState().session;
     if (session?.access_token) {
       config.headers.Authorization = `Bearer ${session.access_token}`;
@@ -27,6 +27,7 @@ api.interceptors.response.use(
   (error) => {
     // Automatically log out if the backend rejects the token
     if (error.response?.status === 401) {
+      const { useAuthStore } = require('../store/authStore');
       useAuthStore.getState().logout();
     }
     return Promise.reject(error.response?.data || error);

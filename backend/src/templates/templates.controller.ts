@@ -11,7 +11,8 @@ import {
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { TemplatesService } from './templates.service';
 import { CreateTemplateDto, UpdateTemplateDto } from './dto/template.dto';
-import { SupabaseAuthGuard } from '../common/guards/supabase-auth.guard';
+import { SupabaseAuthGuard, AuthenticatedUser } from '../common/guards/supabase-auth.guard';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 
@@ -23,37 +24,37 @@ export class TemplatesController {
   constructor(private readonly templatesService: TemplatesService) {}
 
   @ApiOperation({ summary: 'Create a new notification template' })
-  @Roles('admin')
+  @Roles('admin', 'provider')
   @Post()
-  create(@Body() createTemplateDto: CreateTemplateDto) {
-    return this.templatesService.create(createTemplateDto);
+  create(@CurrentUser() user: AuthenticatedUser, @Body() createTemplateDto: CreateTemplateDto) {
+    return this.templatesService.create(createTemplateDto, user);
   }
 
   @ApiOperation({ summary: 'Get all notification templates' })
-  @Roles('admin')
+  @Roles('admin', 'provider')
   @Get()
-  findAll() {
-    return this.templatesService.findAll();
+  findAll(@CurrentUser() user: AuthenticatedUser) {
+    return this.templatesService.findAll(user);
   }
 
   @ApiOperation({ summary: 'Get a specific template' })
-  @Roles('admin')
+  @Roles('admin', 'provider')
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.templatesService.findOne(id);
+  findOne(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
+    return this.templatesService.findOne(id, user);
   }
 
   @ApiOperation({ summary: 'Update a template' })
-  @Roles('admin')
+  @Roles('admin', 'provider')
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateTemplateDto: UpdateTemplateDto) {
-    return this.templatesService.update(id, updateTemplateDto);
+  update(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string, @Body() updateTemplateDto: UpdateTemplateDto) {
+    return this.templatesService.update(id, updateTemplateDto, user);
   }
 
   @ApiOperation({ summary: 'Delete a template' })
-  @Roles('admin')
+  @Roles('admin', 'provider')
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.templatesService.remove(id);
+  remove(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
+    return this.templatesService.remove(id, user);
   }
 }
