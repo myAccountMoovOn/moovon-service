@@ -25,6 +25,13 @@ export class Payment {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @Column({ name: 'company_id', type: 'uuid', nullable: true })
+  companyId: string | null;
+
+  @ManyToOne('Company', 'payments', { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'company_id' })
+  company?: any;
+
   @Column({ name: 'subscription_id', type: 'uuid' })
   subscriptionId: string;
 

@@ -6,10 +6,13 @@ import { SupabaseAuthGuard } from '../common/guards/supabase-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { AuthenticatedUser } from '../common/guards/supabase-auth.guard';
+
 @ApiTags('Reports')
 @ApiBearerAuth()
 @UseGuards(SupabaseAuthGuard, RolesGuard)
-@Roles('admin')
+@Roles('admin', 'provider')
 @Controller('reports')
 export class ReportsController {
   constructor(private readonly reportsService: ReportsService) {}
@@ -46,8 +49,14 @@ export class ReportsController {
 
   @ApiOperation({ summary: 'Get dashboard summary metrics' })
   @Get('dashboard')
-  getDashboard(@Query('from') from?: string, @Query('to') to?: string) {
-    return this.reportsService.getDashboardSummary(from, to);
+  getDashboard(
+    @Query('from') from?: string, 
+    @Query('to') to?: string,
+    @CurrentUser() user?: AuthenticatedUser
+  ) {
+    // If the user is a provider, automatically scope the metrics to their company
+    const companyId = user?.role === 'provider' ? user.companyId : undefined;
+    return this.reportsService.getDashboardSummary(from, to, companyId);
   }
 
   // --- Dynamic Export Endpoints ---

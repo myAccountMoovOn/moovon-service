@@ -2,9 +2,10 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards } f
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { PackagesService } from './packages.service';
 import { CreatePackageDto, UpdatePackageDto } from './dto/package.dto';
-import { SupabaseAuthGuard } from '../common/guards/supabase-auth.guard';
+import { SupabaseAuthGuard, AuthenticatedUser } from '../common/guards/supabase-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
 
 @ApiTags('Packages')
 @ApiBearerAuth()
@@ -15,16 +16,23 @@ export class PackagesController {
   constructor(private readonly packagesService: PackagesService) {}
 
   @Post()
-  @Roles('admin')
+  @Roles('admin', 'provider')
   @ApiOperation({ summary: 'Create a new package' })
-  create(@Body() createPackageDto: CreatePackageDto) {
+  create(@Body() createPackageDto: CreatePackageDto, @CurrentUser() user: AuthenticatedUser) {
+    if (user.role === 'provider' && user.companyId) {
+      createPackageDto.companyId = user.companyId;
+    }
     return this.packagesService.create(createPackageDto);
   }
 
   @Get()
+  @Roles('admin', 'provider', 'customer')
   @ApiOperation({ summary: 'Get all packages' })
-  findAll(@Query('serviceId') serviceId?: string) {
-    return this.packagesService.findAll(serviceId);
+  findAll(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('serviceId') serviceId?: string,
+  ) {
+    return this.packagesService.findAll(serviceId, user);
   }
 
   @Get(':id')
@@ -34,16 +42,23 @@ export class PackagesController {
   }
 
   @Patch(':id')
-  @Roles('admin')
+  @Roles('admin', 'provider')
   @ApiOperation({ summary: 'Update a package' })
-  update(@Param('id') id: string, @Body() updatePackageDto: UpdatePackageDto) {
-    return this.packagesService.update(id, updatePackageDto);
+  update(
+    @Param('id') id: string,
+    @Body() updatePackageDto: UpdatePackageDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.packagesService.update(id, updatePackageDto, user);
   }
 
   @Delete(':id')
-  @Roles('admin')
+  @Roles('admin', 'provider')
   @ApiOperation({ summary: 'Delete a package' })
-  remove(@Param('id') id: string) {
-    return this.packagesService.remove(id);
+  remove(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.packagesService.remove(id, user);
   }
 }

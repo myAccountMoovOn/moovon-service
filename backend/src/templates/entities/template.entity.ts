@@ -4,6 +4,8 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 import { NotificationChannel, NotificationTemplateType } from '../../notifications/entities/notification-log.entity';
 
@@ -11,6 +13,13 @@ import { NotificationChannel, NotificationTemplateType } from '../../notificatio
 export class Template {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @Column({ name: 'company_id', type: 'uuid', nullable: true })
+  companyId: string | null;
+
+  @ManyToOne('Company', 'templates', { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'company_id' })
+  company?: any;
 
   @Column({ type: 'varchar', length: 255 })
   name: string;

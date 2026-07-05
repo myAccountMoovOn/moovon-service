@@ -27,6 +27,13 @@ export class Service {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @Column({ name: 'company_id', type: 'uuid', nullable: true })
+  companyId: string | null;
+
+  @ManyToOne('Company', 'services', { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'company_id' })
+  company?: any;
+
   @Column({ type: 'varchar', length: 255 })
   name: string;
 

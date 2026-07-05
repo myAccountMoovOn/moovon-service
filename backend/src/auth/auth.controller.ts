@@ -17,6 +17,24 @@ export class AuthController {
     return this.authService.login(dto.email, dto.password);
   }
 
+  @ApiOperation({ summary: 'Register a new Provider/Company Step 1 (Sends OTP)' })
+  @Post('register-provider-step1')
+  registerProviderStep1(@Body() dto: import('./dto/auth.dto').RegisterProviderDto) {
+    return this.authService.registerProviderStep1(dto);
+  }
+
+  @ApiOperation({ summary: 'Register a new Customer with a Company Code Step 1 (Sends OTP)' })
+  @Post('register-customer-step1')
+  registerCustomerStep1(@Body() dto: import('./dto/auth.dto').RegisterCustomerDto) {
+    return this.authService.registerCustomerStep1(dto);
+  }
+
+  @ApiOperation({ summary: 'Verify Signup OTP and Complete Registration' })
+  @Post('register-verify')
+  verifySignup(@Body() dto: import('./dto/auth.dto').OtpVerifyDto) {
+    return this.authService.verifySignup(dto.email, dto.token);
+  }
+
   @ApiOperation({ summary: 'Refresh access token' })
   @Post('refresh')
   refresh(@Body() dto: RefreshTokenDto) {
@@ -58,13 +76,15 @@ export class AuthController {
 
   @ApiOperation({ summary: 'Request Login OTP via Email' })
   @Post('request-otp')
-  requestOtp(@Body('email') email: string) {
-    return this.authService.sendEmailOtp(email);
+  requestOtp(@Body() dto: import('./dto/auth.dto').OtpRequestDto) {
+    // Generate a temporary OTP for this flow (if used directly, which is currently bypassed by login 2FA)
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    return this.authService.sendCustomEmailOtp(dto.email, otp);
   }
 
   @ApiOperation({ summary: 'Verify Email OTP and Login' })
   @Post('verify-otp')
-  verifyOtp(@Body('email') email: string, @Body('token') token: string) {
-    return this.authService.verifyOtp(email, token);
+  verifyOtp(@Body() dto: import('./dto/auth.dto').OtpVerifyDto) {
+    return this.authService.verifyOtp(dto.email, dto.token);
   }
 }

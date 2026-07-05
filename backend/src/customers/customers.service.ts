@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, NotFoundException, BadRequestException, ForbiddenException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, In } from 'typeorm';
 import { Customer } from './entities/customer.entity';
@@ -9,6 +9,7 @@ import { Profile } from '../auth/entities/profile.entity';
 import { CreateCustomerDto, UpdateCustomerDto } from './dto/customer.dto';
 import { AuthService } from '../auth/auth.service';
 import { UserRole } from '../auth/entities/profile.entity';
+import { AuthenticatedUser } from '../common/guards/supabase-auth.guard';
 import { NOTIFICATION_QUEUE, NotificationJobPayload, NotificationJobType } from '../queues/notification.queue';
 import { NotificationTemplateType, NotificationChannel } from '../notifications/entities/notification-log.entity';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -102,11 +103,28 @@ export class CustomersService {
     }
   }
 
-  async findAll(page: number = 1, limit: number = 10, search?: string, isActive?: boolean, from?: string, to?: string, hasSubscriptions?: boolean) {
+  async findAll(
+    page: number = 1, 
+    limit: number = 10, 
+    search?: string, 
+    isActive?: boolean, 
+    from?: string, 
+    to?: string, 
+    hasSubscriptions?: boolean,
+    user?: AuthenticatedUser
+  ) {
     const query = this.customerRepo.createQueryBuilder('customer');
 
+    if (user && user.role !== 'admin') {
+      if (user.role === 'provider' && user.companyId) {
+        query.andWhere('customer.company_id = :companyId', { companyId: user.companyId });
+      } else if (user.role === 'customer') {
+        query.andWhere('customer.user_id = :userId', { userId: user.id });
+      }
+    }
+
     if (search) {
-      query.where('(customer.name ILIKE :search OR customer.email ILIKE :search OR customer.phone ILIKE :search)', { search: `%${search}%` });
+      query.andWhere('(customer.name ILIKE :search OR customer.email ILIKE :search OR customer.phone ILIKE :search)', { search: `%${search}%` });
     }
 
     if (isActive !== undefined) {
@@ -180,21 +198,23 @@ export class CustomersService {
     return customer;
   }
 
-  async update(id: string, dto: UpdateCustomerDto) {
+  async update(id: string, dto: UpdateCustomerDto, user?: AuthenticatedUser) {
     const customer = await this.findOne(id);
+    
+    if (user && user.role === 'provider' && customer.companyId !== user.companyId) {
+      throw new ForbiddenException('You can only update customers belonging to your company');
+    }
     
     if (dto.email && dto.email !== customer.email) {
        const emailExists = await this.customerRepo.findOne({ where: { email: dto.email }});
        if (emailExists) throw new BadRequestException('Email already in use');
-       
-       // Note: Updating Supabase auth email requires admin API call, simplified here for record only
     }
 
     Object.assign(customer, dto);
     return this.customerRepo.save(customer);
   }
 
-  async remove(id: string) {
+  async remove(id: string, user?: AuthenticatedUser) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -205,6 +225,10 @@ export class CustomersService {
         relations: ['subscriptions']
       });
       if (!customer) throw new NotFoundException(`Customer with ID ${id} not found`);
+
+      if (user && user.role === 'provider' && customer.companyId !== user.companyId) {
+        throw new ForbiddenException('You can only delete customers belonging to your company');
+      }
 
       const subscriptionIds = customer.subscriptions?.map(s => s.id) || [];
 

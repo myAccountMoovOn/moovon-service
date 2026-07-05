@@ -3,14 +3,28 @@ import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import * as nodemailer from 'nodemailer';
 import { Profile, UserRole } from './entities/profile.entity';
 import { Customer } from '../customers/entities/customer.entity';
+import { Company } from '../companies/entities/company.entity';
+import { CompaniesService } from '../companies/companies.service';
 
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
   private readonly supabaseAdmin: SupabaseClient;
   private readonly supabaseAnon: SupabaseClient;
+  
+  // Custom in-memory cache for 2FA OTPs
+  private otpCache = new Map<string, { otp: string, session: any, expiresAt: number }>();
+  
+  // Custom in-memory cache for Signup Flow
+  private signupCache = new Map<string, { 
+    otp: string, 
+    dto: any, 
+    type: 'provider' | 'customer', 
+    expiresAt: number 
+  }>();
 
   constructor(
     private readonly configService: ConfigService,
@@ -18,6 +32,7 @@ export class AuthService {
     private readonly profileRepository: Repository<Profile>,
     @InjectRepository(Customer)
     private readonly customerRepository: Repository<Customer>,
+    private readonly companiesService: CompaniesService,
   ) {
     const url = this.configService.getOrThrow<string>('SUPABASE_URL');
     const serviceKey = this.configService.getOrThrow<string>('SUPABASE_SERVICE_ROLE_KEY');
@@ -37,6 +52,7 @@ export class AuthService {
   }
 
   async login(email: string, password: string) {
+    // 1. Verify the password to get the Supabase session
     const { data, error } = await this.supabaseAnon.auth.signInWithPassword({
       email,
       password,
@@ -46,17 +62,20 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const profile = await this.profileRepository.findOne({
-      where: { id: data.user.id },
-    });
+    // 2. Generate a custom 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+    // 3. Lock the session in memory. We DO NOT sign them out so the session remains valid,
+    // but we DO NOT return it to the frontend either.
+    this.otpCache.set(email, { otp, session: data.session, expiresAt });
+
+    // 4. Send the OTP via Custom SMTP
+    await this.sendCustomEmailOtp(email, otp);
 
     return {
-      session: data.session,
-      user: {
-        id: data.user.id,
-        email: data.user.email,
-        role: profile?.role ?? UserRole.CUSTOMER,
-      },
+      requireOtp: true,
+      message: 'Password verified. Custom OTP sent to email.',
     };
   }
 
@@ -107,6 +126,126 @@ export class AuthService {
     return data.user.id;
   }
 
+  async registerProviderStep1(dto: import('./dto/auth.dto').RegisterProviderDto) {
+    // 1. Generate a custom 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+    // 2. Lock the signup data in memory
+    this.signupCache.set(dto.email, { otp, dto, type: 'provider', expiresAt });
+
+    // 3. Send the OTP
+    await this.sendCustomEmailOtp(dto.email, otp);
+
+    return { message: 'OTP sent to email. Please verify to complete registration.' };
+  }
+
+  async registerCustomerStep1(dto: import('./dto/auth.dto').RegisterCustomerDto) {
+    // 1. Validate company code first so we don't send OTP if it's invalid
+    await this.companiesService.findByCode(dto.companyCode);
+
+    // 2. Generate a custom 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+    // 3. Lock the signup data in memory
+    this.signupCache.set(dto.email, { otp, dto, type: 'customer', expiresAt });
+
+    // 4. Send the OTP
+    await this.sendCustomEmailOtp(dto.email, otp);
+
+    return { message: 'OTP sent to email. Please verify to complete registration.' };
+  }
+
+  async verifySignup(email: string, token: string) {
+    this.logger.log(`Verifying Signup OTP for ${email}`);
+    
+    const cached = this.signupCache.get(email);
+    
+    if (!cached) {
+      throw new UnauthorizedException('No pending signup request found for this email');
+    }
+
+    if (Date.now() > cached.expiresAt) {
+      this.signupCache.delete(email);
+      throw new UnauthorizedException('OTP has expired. Please signup again.');
+    }
+
+    if (cached.otp !== token) {
+      throw new UnauthorizedException('Invalid OTP code');
+    }
+
+    // OTP is valid! Let's perform the actual registration
+    const { dto, type } = cached;
+    let result: any;
+
+    if (type === 'provider') {
+      result = await this.registerProvider(dto);
+    } else {
+      result = await this.registerCustomer(dto);
+    }
+
+    // Clean up cache
+    this.signupCache.delete(email);
+    
+    // Automatically log the user in after registration so they don't have to enter the password again
+    const { data, error } = await this.supabaseAnon.auth.signInWithPassword({
+      email: dto.email,
+      password: dto.password,
+    });
+
+    if (error || !data.session) {
+      throw new Error('User created successfully, but auto-login failed. Please login manually.');
+    }
+
+    const session = data.session;
+    return {
+      message: result.message,
+      companyCode: result.companyCode,
+      companyName: result.companyName,
+      session,
+      user: {
+        id: session.user.id,
+        email: session.user.email,
+        role: type === 'provider' ? UserRole.PROVIDER : UserRole.CUSTOMER,
+      },
+    };
+  }
+
+  // Internal actual registration logic (now private or kept public for testing, but typically only called by verifySignup)
+  async registerProvider(dto: import('./dto/auth.dto').RegisterProviderDto) {
+    const userId = await this.createSupabaseUser(dto.email, dto.password, UserRole.PROVIDER);
+    
+    // Create the company
+    const company = await this.companiesService.create(dto.companyName);
+
+    // Update profile with companyId
+    await this.profileRepository.update({ id: userId }, { companyId: company.id });
+
+    return { message: 'Provider registered successfully', companyCode: company.code, companyName: company.name };
+  }
+
+  async registerCustomer(dto: import('./dto/auth.dto').RegisterCustomerDto) {
+    const company = await this.companiesService.findByCode(dto.companyCode);
+
+    const userId = await this.createSupabaseUser(dto.email, dto.password, UserRole.CUSTOMER);
+    
+    // Update profile with companyId
+    await this.profileRepository.update({ id: userId }, { companyId: company.id });
+
+    // Create customer record
+    const customer = this.customerRepository.create({
+      userId,
+      companyId: company.id,
+      name: dto.name,
+      phone: dto.phone,
+      email: dto.email,
+    });
+    await this.customerRepository.save(customer);
+
+    return { message: 'Customer registered successfully', companyName: company.name };
+  }
+
   async deleteSupabaseUser(userId: string): Promise<void> {
     const { error } = await this.supabaseAdmin.auth.admin.deleteUser(userId);
     if (error) {
@@ -147,45 +286,77 @@ export class AuthService {
     return { message: 'Password updated successfully' };
   }
 
-  async sendEmailOtp(email: string) {
-    this.logger.log(`Requesting Email OTP for ${email}`);
-    const { data, error } = await this.supabaseAnon.auth.signInWithOtp({
-      email,
-      options: {
-        shouldCreateUser: false, // User must already exist as a Customer
+  async sendCustomEmailOtp(email: string, otp: string) {
+    this.logger.log(`Requesting Custom SMTP OTP for ${email}`);
+    
+    const host = this.configService.get<string>('SMTP_HOST') || 'smtp.gmail.com';
+    // Use parseInt to ensure we get a number, matching the ICA project
+    const port = parseInt(this.configService.get<string>('SMTP_PORT') || '587', 10);
+    const user = this.configService.get<string>('SMTP_USER');
+    const pass = this.configService.get<string>('SMTP_PASS');
+
+    if (!pass) {
+      this.logger.warn(`[DEV MODE] SMTP not configured. OTP for ${email} is: ${otp}`);
+      return { message: 'OTP logged to console (dev mode)' };
+    }
+
+    // Create fresh transporter per request to avoid timeout/ETIMEDOUT issues
+    const transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure: port === 465, // True for 465, false for 587 (Standard ICA logic)
+      auth: {
+        user,
+        pass,
       },
     });
 
-    if (error) {
-      this.logger.error(`Failed to send Email OTP: ${error.message}`);
-      throw new Error(`Failed to send OTP: ${error.message}`);
+    try {
+      await transporter.sendMail({
+        from: this.configService.get<string>('SMTP_FROM') || `"Moovon Admin" <${user}>`,
+        to: email,
+        subject: 'Your Moovon Verification Code',
+        text: `Your 6-digit verification code is: ${otp}. It expires in 10 minutes.`,
+        html: `<b>Your 6-digit verification code is: ${otp}</b><br/>It expires in 10 minutes.`,
+      });
+      return { message: 'OTP sent successfully to your email' };
+    } catch (error: any) {
+      this.logger.error(`Failed to send Custom SMTP OTP: ${error.message}`);
+      throw new Error(`Failed to send OTP email: ${error.message}`);
     }
-
-    return { message: 'OTP sent successfully to your email' };
   }
 
   async verifyOtp(email: string, token: string) {
-    this.logger.log(`Verifying OTP for ${email}`);
-    const { data, error } = await this.supabaseAnon.auth.verifyOtp({
-      email,
-      token,
-      type: 'email',
-    });
-
-    if (error || !data.user || !data.session) {
-      this.logger.error(`Failed to verify OTP: ${error?.message ?? 'Invalid user or session'}`);
-      throw new UnauthorizedException('Invalid or expired OTP');
+    this.logger.log(`Verifying Custom OTP for ${email}`);
+    
+    const cached = this.otpCache.get(email);
+    
+    if (!cached) {
+      throw new UnauthorizedException('No pending OTP request found for this email');
     }
 
+    if (Date.now() > cached.expiresAt) {
+      this.otpCache.delete(email);
+      throw new UnauthorizedException('OTP has expired. Please login again.');
+    }
+
+    if (cached.otp !== token) {
+      throw new UnauthorizedException('Invalid OTP code');
+    }
+
+    // OTP is valid! Retrieve the locked session
+    const session = cached.session;
+    this.otpCache.delete(email); // Clean up the cache
+
     const profile = await this.profileRepository.findOne({
-      where: { id: data.user.id },
+      where: { id: session.user.id },
     });
 
     return {
-      session: data.session,
+      session,
       user: {
-        id: data.user.id,
-        email: data.user.email,
+        id: session.user.id,
+        email: session.user.email,
         role: profile?.role ?? UserRole.CUSTOMER,
       },
     };

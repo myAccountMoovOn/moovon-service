@@ -12,9 +12,10 @@ import {
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { SubscriptionsService } from './subscriptions.service';
 import { CreateSubscriptionDto, UpdateSubscriptionDto, NotifySubscriptionDto } from './dto/subscription.dto';
-import { SupabaseAuthGuard } from '../common/guards/supabase-auth.guard';
+import { SupabaseAuthGuard, AuthenticatedUser } from '../common/guards/supabase-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
 
 @ApiTags('Subscriptions')
 @ApiBearerAuth()
@@ -24,15 +25,22 @@ export class SubscriptionsController {
   constructor(private readonly subscriptionsService: SubscriptionsService) {}
 
   @ApiOperation({ summary: 'Create a new subscription' })
-  @Roles('admin')
+  @Roles('admin', 'provider')
   @Post()
-  create(@Body() createSubscriptionDto: CreateSubscriptionDto) {
+  create(
+    @Body() createSubscriptionDto: CreateSubscriptionDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    if (user.role === 'provider' && user.companyId) {
+      createSubscriptionDto.companyId = user.companyId;
+    }
     return this.subscriptionsService.create(createSubscriptionDto);
   }
 
   @ApiOperation({ summary: 'Get all subscriptions (paginated & filtered)' })
   @Get()
   findAll(
+    @CurrentUser() user: AuthenticatedUser,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
     @Query('status') status?: string,
@@ -54,7 +62,8 @@ export class SubscriptionsController {
       search, 
       from, 
       to, 
-      paymentStatus
+      paymentStatus,
+      user
     );
   }
 
@@ -72,23 +81,34 @@ export class SubscriptionsController {
   }
 
   @ApiOperation({ summary: 'Update a subscription' })
-  @Roles('admin')
+  @Roles('admin', 'provider')
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateSubscriptionDto: UpdateSubscriptionDto) {
-    return this.subscriptionsService.update(id, updateSubscriptionDto);
+  update(
+    @Param('id') id: string,
+    @Body() updateSubscriptionDto: UpdateSubscriptionDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.subscriptionsService.update(id, updateSubscriptionDto, user);
   }
 
   @ApiOperation({ summary: 'Delete a subscription' })
-  @Roles('admin')
+  @Roles('admin', 'provider')
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.subscriptionsService.remove(id);
+  remove(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.subscriptionsService.remove(id, user);
   }
 
   @ApiOperation({ summary: 'Send notifications manually via queue' })
-  @Roles('admin')
+  @Roles('admin', 'provider')
   @Post(':id/notify')
-  notify(@Param('id') id: string, @Body() notifyDto: NotifySubscriptionDto) {
-    return this.subscriptionsService.notify(id, notifyDto);
+  notify(
+    @Param('id') id: string,
+    @Body() notifyDto: NotifySubscriptionDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.subscriptionsService.notify(id, notifyDto, user);
   }
 }

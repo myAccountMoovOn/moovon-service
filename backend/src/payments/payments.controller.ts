@@ -25,18 +25,20 @@ export class PaymentsController {
   @ApiOperation({ summary: 'Get all successful payments (paginated)' })
   @ApiBearerAuth()
   @UseGuards(SupabaseAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'provider')
   @Get()
   findAll(
+    @CurrentUser() user: AuthenticatedUser,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
     @Query('search') search?: string,
+    @Query('status') status?: string,
     @Query('from') from?: string,
     @Query('to') to?: string,
   ) {
     const pageNumber = page ? parseInt(page, 10) : 1;
     const limitNumber = limit ? parseInt(limit, 10) : 10;
-    return this.paymentsService.findAll(pageNumber, limitNumber, search, from, to);
+    return this.paymentsService.findAll(pageNumber, limitNumber, search, status, from, to, user);
   }
 
   @ApiOperation({ summary: 'Generate Razorpay payment link for a subscription (or mock link)' })
@@ -55,6 +57,9 @@ export class PaymentsController {
   }
 
   @ApiOperation({ summary: 'Simulate a successful mock payment' })
+  @ApiBearerAuth()
+  @UseGuards(SupabaseAuthGuard, RolesGuard)
+  @Roles('admin', 'provider')
   @Post('simulate-mock-success/:subscriptionId')
   simulateMockSuccess(@Param('subscriptionId') subscriptionId: string) {
     return this.paymentsService.simulateMockSuccess(subscriptionId);
@@ -98,10 +103,13 @@ export class PaymentsController {
   @ApiOperation({ summary: 'Delete a payment record' })
   @ApiBearerAuth()
   @UseGuards(SupabaseAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'provider')
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.paymentsService.remove(id);
+  remove(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.paymentsService.remove(id, user);
   }
 
   @ApiOperation({ summary: "Get the current customer's payment history" })

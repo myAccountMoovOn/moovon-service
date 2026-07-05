@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException, Inject, forwardRef, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, Inject, forwardRef, Logger, ForbiddenException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
@@ -9,6 +9,7 @@ import { CreateSubscriptionDto, UpdateSubscriptionDto, NotifySubscriptionDto } f
 import { NOTIFICATION_QUEUE, NotificationJobPayload, NotificationJobType } from '../queues/notification.queue';
 import { Package } from '../packages/entities/package.entity';
 import { NotificationTemplateType, NotificationChannel, NotificationLog } from '../notifications/entities/notification-log.entity';
+import { AuthenticatedUser } from '../common/guards/supabase-auth.guard';
 import { Payment } from '../payments/entities/payment.entity';
 import { Service } from '../services-master/entities/service.entity';
 import { PaymentsService } from '../payments/payments.service';
@@ -132,11 +133,25 @@ export class SubscriptionsService {
     from?: string,
     to?: string,
     paymentStatus?: string,
+    user?: AuthenticatedUser
   ) {
     const query = this.subscriptionRepo.createQueryBuilder('sub')
       .leftJoinAndSelect('sub.customer', 'customer')
       .leftJoinAndSelect('sub.service', 'service')
       .orderBy('sub.createdAt', 'DESC');
+
+    // Multi-tenancy: filter by companyId for non-admin users
+    if (user && user.role !== 'admin' && user.companyId) {
+      query.andWhere('sub.company_id = :companyId', { companyId: user.companyId });
+    }
+
+    if (user && user.role !== 'admin') {
+      if (user.role === 'provider' && user.companyId) {
+        query.andWhere('customer.company_id = :companyId', { companyId: user.companyId });
+      } else if (user.role === 'customer') {
+        query.andWhere('customer.user_id = :userId', { userId: user.id });
+      }
+    }
 
     if (customerId) query.andWhere('sub.customerId = :customerId', { customerId });
     if (serviceId) query.andWhere('sub.serviceId = :serviceId', { serviceId });
@@ -210,13 +225,18 @@ export class SubscriptionsService {
     return sub;
   }
 
-  async update(id: string, dto: UpdateSubscriptionDto) {
+  async update(id: string, dto: UpdateSubscriptionDto, user?: AuthenticatedUser) {
     const sub = await this.findOne(id);
+    
+    if (user && user.role === 'provider' && sub.companyId !== user.companyId) {
+      throw new ForbiddenException('You can only update subscriptions belonging to your company');
+    }
+
     Object.assign(sub, dto);
     return this.subscriptionRepo.save(sub);
   }
 
-  async remove(id: string) {
+  async remove(id: string, user?: AuthenticatedUser) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -224,6 +244,10 @@ export class SubscriptionsService {
     try {
       const sub = await this.subscriptionRepo.findOne({ where: { id } });
       if (!sub) throw new NotFoundException(`Subscription with ID ${id} not found`);
+
+      if (user && user.role === 'provider' && sub.companyId !== user.companyId) {
+        throw new ForbiddenException('You can only delete subscriptions belonging to your company');
+      }
 
       // 1. Manually delete related Notification Logs
       await queryRunner.manager.delete(NotificationLog, { subscriptionId: id });
@@ -246,8 +270,12 @@ export class SubscriptionsService {
     }
   }
 
-  async notify(id: string, dto: NotifySubscriptionDto) {
+  async notify(id: string, dto: NotifySubscriptionDto, user?: AuthenticatedUser) {
     const sub = await this.findOne(id);
+    
+    if (user && user.role === 'provider' && sub.companyId !== user.companyId) {
+      throw new ForbiddenException('You can only send notifications for subscriptions belonging to your company');
+    }
 
     const variables = {
       customer_name: sub.customer?.name || '',

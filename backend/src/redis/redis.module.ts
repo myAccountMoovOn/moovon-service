@@ -17,10 +17,10 @@ export const REDIS_CLIENT = 'REDIS_CLIENT';
           port: config.get<number>('REDIS_PORT', 6379),
           password: config.get<string>('REDIS_PASSWORD') || undefined,
           lazyConnect: true,
-          retryStrategy: (times: number) => Math.min(times * 100, 3000),
+          retryStrategy: (times: number) => null, // Disabled temporarily to prevent spam
         });
         client.on('error', (err: Error) => {
-          console.error('[Redis] Connection error:', err.message);
+          // Suppress error logs while disabled
         });
         client.on('connect', () => {
           console.log('[Redis] Connected successfully');

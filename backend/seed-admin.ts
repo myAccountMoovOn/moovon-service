@@ -14,7 +14,7 @@ async function bootstrap() {
   console.log('Seeding initial admin user...');
   
   try {
-    const userId = await authService.createSupabaseUser(email, password, UserRole.ADMIN);
+    const userId = await authService.createSupabaseUser(email, password, UserRole.SUPER_ADMIN);
     console.log('\n✅ Admin user successfully created in Supabase!');
     console.log('--------------------------------------------------');
     console.log(`Email:    ${email}`);

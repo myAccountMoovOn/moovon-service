@@ -41,3 +41,65 @@ export class ChangePasswordDto {
   @MinLength(6)
   newPassword: string;
 }
+
+export class OtpRequestDto {
+  @ApiProperty({ example: 'admin@example.com' })
+  @IsEmail()
+  email: string;
+}
+
+export class OtpVerifyDto {
+  @ApiProperty({ example: 'admin@example.com' })
+  @IsEmail()
+  email: string;
+
+  @ApiProperty({ example: '123456' })
+  @IsString()
+  token: string;
+}
+
+export class RegisterProviderDto {
+  @ApiProperty()
+  @IsEmail()
+  email: string;
+
+  @ApiProperty()
+  @IsString()
+  @MinLength(6)
+  password: string;
+
+  @ApiProperty()
+  @IsString()
+  companyName: string;
+
+  @ApiProperty()
+  @IsString()
+  name: string;
+
+  @ApiProperty()
+  @IsString()
+  phone: string;
+}
+
+export class RegisterCustomerDto {
+  @ApiProperty()
+  @IsEmail()
+  email: string;
+
+  @ApiProperty()
+  @IsString()
+  @MinLength(6)
+  password: string;
+
+  @ApiProperty()
+  @IsString()
+  companyCode: string;
+
+  @ApiProperty()
+  @IsString()
+  name: string;
+
+  @ApiProperty()
+  @IsString()
+  phone: string;
+}

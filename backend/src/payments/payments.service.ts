@@ -5,6 +5,9 @@ import { ConfigService } from '@nestjs/config';
 import Razorpay from 'razorpay';
 import * as crypto from 'crypto';
 import PDFDocument from 'pdfkit';
+import * as fs from 'fs/promises';
+import { join } from 'path';
+import { AuthenticatedUser } from '../common/guards/supabase-auth.guard';
 import { Payment, PaymentRecordStatus } from './entities/payment.entity';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { StorageService } from '../storage/storage.service';
@@ -321,9 +324,20 @@ export class PaymentsService {
     }
   }
 
-  async remove(id: string) {
-    const payment = await this.paymentRepo.findOne({ where: { id } });
+  async remove(id: string, user?: AuthenticatedUser) {
+    const payment = await this.paymentRepo.findOne({ 
+      where: { id },
+      relations: ['subscription', 'subscription.customer'] 
+    });
+    
     if (!payment) throw new NotFoundException(`Payment with ID ${id} not found`);
+
+    if (user && user.role === 'provider') {
+      if (payment.subscription?.customer?.companyId !== user.companyId) {
+        throw new BadRequestException('You do not have permission to delete this payment');
+      }
+    }
+
     await this.paymentRepo.remove(payment);
     return { success: true, message: 'Payment record deleted' };
   }
@@ -364,14 +378,27 @@ export class PaymentsService {
     this.logger.log(`Queued Payment Success confirmation for payment ${paymentId}`);
   }
 
-  async findAll(page: number, limit: number, search?: string, from?: string, to?: string) {
+  async findAll(page: number, limit: number, search?: string, status?: string, from?: string, to?: string, user?: AuthenticatedUser) {
     this.logger.log(`Fetching payments. Page: ${page}, Limit: ${limit}, Search: ${search}, Range: [${from} - ${to}]`);
     
     const query = this.paymentRepo.createQueryBuilder('payment')
       .leftJoinAndSelect('payment.subscription', 'subscription')
       .leftJoinAndSelect('subscription.customer', 'customer')
-      .leftJoinAndSelect('subscription.service', 'service')
-      .where('payment.status = :status', { status: PaymentRecordStatus.SUCCESS });
+      .leftJoinAndSelect('subscription.service', 'service');
+
+    if (status) {
+      query.where('payment.status = :status', { status });
+    } else {
+      query.where('payment.status = :defaultStatus', { defaultStatus: PaymentRecordStatus.SUCCESS });
+    }
+
+    if (user && user.role !== 'admin') {
+      if (user.role === 'provider' && user.companyId) {
+        query.andWhere('customer.company_id = :companyId', { companyId: user.companyId });
+      } else if (user.role === 'customer') {
+        query.andWhere('customer.user_id = :userId', { userId: user.id });
+      }
+    }
 
     if (search) {
       query.andWhere(

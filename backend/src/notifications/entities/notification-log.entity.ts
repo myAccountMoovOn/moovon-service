@@ -38,6 +38,13 @@ export class NotificationLog {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @Column({ name: 'company_id', type: 'uuid', nullable: true })
+  companyId: string | null;
+
+  @ManyToOne('Company', 'notificationLogs', { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'company_id' })
+  company?: any;
+
   @Column({ name: 'subscription_id', type: 'uuid', nullable: true })
   subscriptionId: string | null;
 
