@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Image } from 'react-native';
 import { Text, TextInput, Button, useTheme, Surface } from 'react-native-paper';
 import { Link, router } from 'expo-router';
 
@@ -11,6 +11,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   
   const login = useAuthStore((state) => state.login);
   const verifyOtp = useAuthStore((state) => state.verifyOtp);
@@ -42,26 +43,27 @@ export default function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? undefined : 'padding'}
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-    >
-      <ScrollView 
-        contentContainerStyle={styles.scrollContent} 
-        keyboardShouldPersistTaps="handled"
-        automaticallyAdjustKeyboardInsets={true}
-      >
-        <View style={{ flex: 1 }} />
-        
-        <View style={styles.header}>
-          <Text variant="displaySmall" style={{ color: theme.colors.primary, fontWeight: 'bold' }}>
-            Moovon
-          </Text>
-          <Text variant="bodyLarge" style={styles.subtitle}>
-            {otpSent ? 'Two-Factor Authentication' : 'Sign in to your account'}
-          </Text>
-        </View>
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <View style={styles.header}>
+        <View style={styles.fakeShadow} />
+        <Image source={require('../../assets/images/favicon.png')} style={styles.logoImage} resizeMode="contain" />
+        <Text variant="displaySmall" style={{ color: theme.colors.primary, fontWeight: 'bold' }}>
+          Moovon
+        </Text>
+        <Text variant="bodyLarge" style={styles.subtitle}>
+          {otpSent ? 'Two-Factor Authentication' : 'Sign in to your account'}
+        </Text>
+      </View>
 
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+      >
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent} 
+          keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets={true}
+        >
         <Surface style={styles.card} elevation={2}>
           {!otpSent ? (
             <>
@@ -79,7 +81,8 @@ export default function LoginScreen() {
                 mode="outlined"
                 value={password}
                 onChangeText={setPassword}
-                secureTextEntry
+                secureTextEntry={!showPassword}
+                right={<TextInput.Icon icon={showPassword ? "eye-off" : "eye"} onPress={() => setShowPassword(!showPassword)} />}
                 style={styles.input}
               />
 
@@ -148,8 +151,9 @@ export default function LoginScreen() {
         </View>
 
         <View style={{ flex: 1 }} />
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -160,10 +164,32 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     padding: 24,
+    paddingTop: 16,
   },
   header: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 8,
+    marginTop: 120,
+  },
+  fakeShadow: {
+    position: 'absolute',
+    top: 35,
+    width: 50,
+    height: 40,
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 15 },
+    shadowOpacity: 0.8,
+    shadowRadius: 8,
+    elevation: 24,
+  },
+  logoImage: {
+    width: 80,
+    height: 80,
+    marginBottom: 16,
+    borderRadius: 40,
+    backgroundColor: '#ffffff',
   },
   subtitle: {
     marginTop: 8,

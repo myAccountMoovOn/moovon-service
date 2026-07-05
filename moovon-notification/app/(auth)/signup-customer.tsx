@@ -16,6 +16,7 @@ export default function SignupCustomerScreen() {
   });
   const [otp, setOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const registerCustomerStep1 = useAuthStore((state) => state.registerCustomerStep1);
   const verifySignup = useAuthStore((state) => state.verifySignup);
@@ -113,7 +114,8 @@ export default function SignupCustomerScreen() {
                 mode="outlined"
                 value={formData.password}
                 onChangeText={(v) => updateField('password', v)}
-                secureTextEntry
+                secureTextEntry={!showPassword}
+                right={<TextInput.Icon icon={showPassword ? "eye-off" : "eye"} onPress={() => setShowPassword(!showPassword)} />}
                 style={styles.input}
               />
 
