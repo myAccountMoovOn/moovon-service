@@ -9,17 +9,21 @@ import { NotificationsService } from './notifications.service';
 import { NotificationChannel, NotificationStatus } from './entities/notification-log.entity';
 import { SupabaseAuthGuard, AuthenticatedUser } from '../common/guards/supabase-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { Roles } from '../common/decorators/roles.decorator';
 
 @ApiTags('Notifications')
 @ApiBearerAuth()
-@UseGuards(SupabaseAuthGuard)
+@UseGuards(SupabaseAuthGuard, RolesGuard)
 @Controller('notifications')
 export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}
 
   @ApiOperation({ summary: 'Get notification logs (paginated)' })
+  @Roles('admin', 'provider')
   @Get('logs')
   getLogs(
+    @CurrentUser() user: AuthenticatedUser,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
     @Query('channel') channel?: NotificationChannel,
@@ -35,6 +39,7 @@ export class NotificationsController {
       channel,
       status,
       customerId,
+      user,
     );
   }
 

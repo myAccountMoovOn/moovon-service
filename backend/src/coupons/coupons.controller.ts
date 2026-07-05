@@ -2,7 +2,8 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@n
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { CouponsService } from './coupons.service';
 import { CreateCouponDto, UpdateCouponDto, ValidateCouponDto } from './dto/coupon.dto';
-import { SupabaseAuthGuard } from '../common/guards/supabase-auth.guard';
+import { SupabaseAuthGuard, AuthenticatedUser } from '../common/guards/supabase-auth.guard';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 
@@ -14,41 +15,43 @@ export class CouponsController {
   constructor(private readonly couponsService: CouponsService) {}
 
   @Post()
-  @Roles('admin')
+  @Roles('admin', 'provider')
   @ApiOperation({ summary: 'Create a new coupon' })
-  create(@Body() createCouponDto: CreateCouponDto) {
-    return this.couponsService.create(createCouponDto);
+  create(@CurrentUser() user: AuthenticatedUser, @Body() createCouponDto: CreateCouponDto) {
+    return this.couponsService.create(createCouponDto, user);
   }
 
   @Post('validate')
   @ApiOperation({ summary: 'Validate a coupon code and calculate discount' })
-  validate(@Body() validateCouponDto: ValidateCouponDto) {
-    return this.couponsService.validate(validateCouponDto);
+  validate(@CurrentUser() user: AuthenticatedUser, @Body() validateCouponDto: ValidateCouponDto) {
+    return this.couponsService.validate(validateCouponDto, user);
   }
 
   @Get()
+  @Roles('admin', 'provider')
   @ApiOperation({ summary: 'Get all coupons' })
-  findAll() {
-    return this.couponsService.findAll();
+  findAll(@CurrentUser() user: AuthenticatedUser) {
+    return this.couponsService.findAll(user);
   }
 
   @Get(':id')
+  @Roles('admin', 'provider')
   @ApiOperation({ summary: 'Get a coupon by ID' })
-  findOne(@Param('id') id: string) {
-    return this.couponsService.findOne(id);
+  findOne(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
+    return this.couponsService.findOne(id, user);
   }
 
   @Patch(':id')
-  @Roles('admin')
+  @Roles('admin', 'provider')
   @ApiOperation({ summary: 'Update a coupon' })
-  update(@Param('id') id: string, @Body() updateCouponDto: UpdateCouponDto) {
-    return this.couponsService.update(id, updateCouponDto);
+  update(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string, @Body() updateCouponDto: UpdateCouponDto) {
+    return this.couponsService.update(id, updateCouponDto, user);
   }
 
   @Delete(':id')
-  @Roles('admin')
+  @Roles('admin', 'provider')
   @ApiOperation({ summary: 'Delete a coupon' })
-  remove(@Param('id') id: string) {
-    return this.couponsService.remove(id);
+  remove(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
+    return this.couponsService.remove(id, user);
   }
 }

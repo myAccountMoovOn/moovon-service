@@ -22,7 +22,7 @@ export class ReportsService {
     private readonly pdfService: PdfService,
   ) {}
 
-  async exportToPdf(from?: string, to?: string, type: string = 'renewals') {
+  async exportToPdf(from?: string, to?: string, type: string = 'renewals', companyId?: string) {
     let title = 'Report';
     let headers: string[] = [];
     let rows: any[] = [];
@@ -31,7 +31,7 @@ export class ReportsService {
     switch (type) {
       case 'revenue':
         title = 'Revenue Report';
-        const { payments } = await this.getRevenue(from, to);
+        const { payments } = await this.getRevenue(from, to, companyId);
         data = payments;
         headers = ['Transaction ID', 'Customer', 'Amount', 'Date'];
         rows = data.map((p: any) => [
@@ -44,7 +44,7 @@ export class ReportsService {
 
       case 'customers':
         title = 'Customer Performance Report';
-        data = await this.getCustomerReport();
+        data = await this.getCustomerReport(companyId);
         headers = ['Name', 'Email', 'Active Subs', 'Status'];
         rows = data.map((c: any) => [
           c.name,
@@ -56,7 +56,7 @@ export class ReportsService {
 
       case 'services':
         title = 'Service Popularity Report';
-        data = await this.getServiceReport();
+        data = await this.getServiceReport(companyId);
         headers = ['Service Name', 'Total Subs', 'Monthly Price', 'Status'];
         rows = data.map((s: any) => [
           s.name,
@@ -68,7 +68,7 @@ export class ReportsService {
       
       case 'payment_status':
         title = 'Outstanding / Pending Payments';
-        data = await this.getPaymentStatusReport();
+        data = await this.getPaymentStatusReport(companyId);
         headers = ['Customer', 'Service', 'Due Date', 'Status'];
         rows = data.map((s: any) => [
           s.customer?.name,
@@ -80,7 +80,7 @@ export class ReportsService {
 
       default: // renewals
         title = 'Upcoming Renewals Report';
-        data = await this.getRenewals(from, to);
+        data = await this.getRenewals(from, to, companyId);
         headers = ['Customer', 'Service', 'Expiry', 'Amount'];
         rows = data.map((sub: any) => [
           sub.customer?.name,
@@ -115,13 +115,13 @@ export class ReportsService {
     return this.pdfService.generatePdf(docDefinition);
   }
 
-  async exportToExcel(type: string, from?: string, to?: string, format: 'xlsx' | 'csv' = 'xlsx') {
+  async exportToExcel(type: string, from?: string, to?: string, format: 'xlsx' | 'csv' = 'xlsx', companyId?: string) {
     let rows: any[] = [];
     let sheetName = 'Report';
 
     switch (type) {
       case 'revenue':
-        const { payments } = await this.getRevenue(from, to);
+        const { payments } = await this.getRevenue(from, to, companyId);
         sheetName = 'Revenue';
         rows = payments.map(p => ({
           'Transaction ID': p.transactionId,
@@ -133,7 +133,7 @@ export class ReportsService {
         break;
       
       case 'customers':
-        const customers = await this.getCustomerReport();
+        const customers = await this.getCustomerReport(companyId);
         sheetName = 'Customers';
         rows = customers.map(c => ({
           'Name': c.name,
@@ -145,7 +145,7 @@ export class ReportsService {
         break;
 
       case 'services':
-        const services = await this.getServiceReport();
+        const services = await this.getServiceReport(companyId);
         sheetName = 'Services';
         rows = services.map(s => ({
           'Service Name': s.name,
@@ -156,7 +156,7 @@ export class ReportsService {
         break;
 
       case 'payment_status':
-        const pending = await this.getPaymentStatusReport();
+        const pending = await this.getPaymentStatusReport(companyId);
         sheetName = 'Outstanding';
         rows = pending.map(s => ({
           'Customer': s.customer?.name,
@@ -168,7 +168,7 @@ export class ReportsService {
         break;
 
       default: // renewals
-        const data = await this.getRenewals(from, to);
+        const data = await this.getRenewals(from, to, companyId);
         sheetName = 'Renewals';
         rows = data.map(sub => ({
           'Customer Name': sub.customer?.name,
@@ -189,33 +189,49 @@ export class ReportsService {
     });
   }
 
-  async getCustomerReport() {
-    return this.customerRepo.createQueryBuilder('customer')
-      .loadRelationCountAndMap('customer.subscriptionsCount', 'customer.subscriptions')
-      .orderBy('customer.name', 'ASC')
-      .getMany();
+  async getCustomerReport(companyId?: string) {
+    const query = this.customerRepo.createQueryBuilder('customer')
+      .loadRelationCountAndMap('customer.subscriptionsCount', 'customer.subscriptions');
+      
+    if (companyId) {
+      query.where('customer.company_id = :companyId', { companyId });
+    }
+    
+    return query.orderBy('customer.name', 'ASC').getMany();
   }
 
-  async getServiceReport() {
-    return this.serviceRepo.createQueryBuilder('service')
-      .loadRelationCountAndMap('service.subscriptionsCount', 'service.subscriptions')
-      .orderBy('service.name', 'ASC')
-      .getMany();
+  async getServiceReport(companyId?: string) {
+    const query = this.serviceRepo.createQueryBuilder('service')
+      .loadRelationCountAndMap('service.subscriptionsCount', 'service.subscriptions');
+      
+    if (companyId) {
+      query.where('service.company_id = :companyId', { companyId });
+    }
+    
+    return query.orderBy('service.name', 'ASC').getMany();
   }
 
-  async getPaymentStatusReport() {
-    return this.subRepo.createQueryBuilder('sub')
+  async getPaymentStatusReport(companyId?: string) {
+    const query = this.subRepo.createQueryBuilder('sub')
       .leftJoinAndSelect('sub.customer', 'customer')
       .leftJoinAndSelect('sub.service', 'service')
-      .where('sub.paymentStatus IN (:...statuses)', { statuses: ['pending', 'partial'] })
-      .orderBy('sub.endDate', 'ASC')
-      .getMany();
+      .where('sub.paymentStatus IN (:...statuses)', { statuses: ['pending', 'partial'] });
+      
+    if (companyId) {
+      query.andWhere('customer.company_id = :companyId', { companyId });
+    }
+    
+    return query.orderBy('sub.endDate', 'ASC').getMany();
   }
 
-  async getRenewals(from?: string, to?: string) {
+  async getRenewals(from?: string, to?: string, companyId?: string) {
     const query = this.subRepo.createQueryBuilder('sub')
       .leftJoinAndSelect('sub.customer', 'customer')
       .leftJoinAndSelect('sub.service', 'service');
+
+    if (companyId) {
+      query.andWhere('customer.company_id = :companyId', { companyId });
+    }
 
     if (from && to) {
       query.where('sub.endDate BETWEEN :from AND :to', { from, to });
@@ -225,11 +241,15 @@ export class ReportsService {
     return await query.getMany();
   }
 
-  async getRevenue(from?: string, to?: string) {
+  async getRevenue(from?: string, to?: string, companyId?: string) {
     const query = this.paymentRepo.createQueryBuilder('payment')
       .leftJoinAndSelect('payment.subscription', 'subscription')
       .leftJoinAndSelect('subscription.customer', 'customer')
       .where('payment.status = :status', { status: PaymentRecordStatus.SUCCESS });
+
+    if (companyId) {
+      query.andWhere('customer.company_id = :companyId', { companyId });
+    }
 
     if (from && to) {
       const fromDate = new Date(from);

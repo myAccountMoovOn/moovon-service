@@ -27,8 +27,8 @@ import {
   Chip,
   Searchbar,
 } from 'react-native-paper';
-import { useAuthStore } from '../../store/authStore';
-import { useCustomersStore, CustomerItem, CustomerCreateResult } from '../../store/customersStore';
+import { useAuthStore } from '../../../store/authStore';
+import { useCustomersStore, CustomerItem, CustomerCreateResult } from '../../../store/customersStore';
 import { useRouter } from 'expo-router';
 
 // ── Date helpers ──────────────────────────────────────────────────────────────

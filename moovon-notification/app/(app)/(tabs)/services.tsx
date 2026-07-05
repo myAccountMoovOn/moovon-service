@@ -5,8 +5,8 @@ import {
   FAB, Portal, Modal, TextInput, Button, SegmentedButtons, 
   Switch, Divider, Chip
 } from 'react-native-paper';
-import { useAuthStore } from '../../store/authStore';
-import { useServicesStore, ServiceItem } from '../../store/servicesStore';
+import { useAuthStore } from '../../../store/authStore';
+import { useServicesStore, ServiceItem } from '../../../store/servicesStore';
 import { useRouter } from 'expo-router';
 
 export default function ServicesScreen() {
@@ -92,7 +92,7 @@ export default function ServicesScreen() {
             mode="outlined"
             icon="package-variant"
             onPress={() => router.push('/(app)/packages' as any)}
-            compact
+            style={{ borderRadius: 12 }}
           >
             Packages
           </Button>

@@ -12,6 +12,7 @@ import {
 import { Template } from '../templates/entities/template.entity';
 import { NotificationJobPayload } from '../queues/notification.queue';
 import { Customer } from '../customers/entities/customer.entity';
+import { AuthenticatedUser } from '../common/guards/supabase-auth.guard';
 
 @Injectable()
 export class NotificationsService {
@@ -155,6 +156,7 @@ export class NotificationsService {
     channel?: NotificationChannel,
     status?: NotificationStatus,
     customerId?: string,
+    user?: AuthenticatedUser,
   ) {
     const query = this.logRepo.createQueryBuilder('log')
       .leftJoinAndSelect('log.customer', 'customer')
@@ -163,6 +165,9 @@ export class NotificationsService {
     if (channel) query.andWhere('log.channel = :channel', { channel });
     if (status) query.andWhere('log.status = :status', { status });
     if (customerId) query.andWhere('log.customerId = :customerId', { customerId });
+    if (user && user.role === 'provider' && user.companyId) {
+      query.andWhere('customer.company_id = :companyId', { companyId: user.companyId });
+    }
 
     const [data, total] = await query
       .skip((page - 1) * limit)

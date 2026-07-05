@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Coupon, DiscountType } from './entities/coupon.entity';
 import { CreateCouponDto, UpdateCouponDto, ValidateCouponDto } from './dto/coupon.dto';
+import { AuthenticatedUser } from '../common/guards/supabase-auth.guard';
 
 @Injectable()
 export class CouponsService {
@@ -11,44 +12,55 @@ export class CouponsService {
     private readonly couponRepo: Repository<Coupon>,
   ) {}
 
-  async create(dto: CreateCouponDto) {
-    const existing = await this.couponRepo.findOne({ where: { code: dto.code.toUpperCase() } });
-    if (existing) throw new BadRequestException('Coupon code already exists');
+  async create(dto: CreateCouponDto, user: AuthenticatedUser) {
+    const companyId = user.role === 'provider' ? user.companyId : null;
+    const existing = await this.couponRepo.findOne({ where: { code: dto.code.toUpperCase(), companyId: companyId as any } });
+    if (existing) throw new BadRequestException('Coupon code already exists for this company');
 
     const coupon = this.couponRepo.create({
       ...dto,
       code: dto.code.toUpperCase(),
+      companyId,
     });
     return this.couponRepo.save(coupon);
   }
 
-  async findAll() {
-    return this.couponRepo.find({ order: { createdAt: 'DESC' } });
+  async findAll(user: AuthenticatedUser) {
+    const query: any = {};
+    if (user.role === 'provider') query.companyId = user.companyId;
+    return this.couponRepo.find({ where: query, order: { createdAt: 'DESC' } });
   }
 
-  async findOne(id: string) {
-    const coupon = await this.couponRepo.findOne({ where: { id } });
+  async findOne(id: string, user: AuthenticatedUser) {
+    const query: any = { id };
+    if (user.role === 'provider') query.companyId = user.companyId;
+    const coupon = await this.couponRepo.findOne({ where: query });
     if (!coupon) throw new NotFoundException(`Coupon with ID ${id} not found`);
     return coupon;
   }
 
-  async update(id: string, dto: UpdateCouponDto) {
-    const coupon = await this.findOne(id);
-    if (dto.code) dto.code = dto.code.toUpperCase();
+  async update(id: string, dto: UpdateCouponDto, user: AuthenticatedUser) {
+    const coupon = await this.findOne(id, user);
+    if (dto.code) {
+      dto.code = dto.code.toUpperCase();
+      const companyId = user.role === 'provider' ? user.companyId : null;
+      const existing = await this.couponRepo.findOne({ where: { code: dto.code, companyId: companyId as any } });
+      if (existing && existing.id !== id) throw new BadRequestException('Coupon code already exists');
+    }
     Object.assign(coupon, dto);
     return this.couponRepo.save(coupon);
   }
 
-  async remove(id: string) {
-    const coupon = await this.findOne(id);
+  async remove(id: string, user: AuthenticatedUser) {
+    const coupon = await this.findOne(id, user);
     await this.couponRepo.remove(coupon);
     return { success: true };
   }
 
-  async validate(dto: ValidateCouponDto) {
-    const coupon = await this.couponRepo.findOne({
-      where: { code: dto.code.toUpperCase(), isActive: true }
-    });
+  async validate(dto: ValidateCouponDto, user: AuthenticatedUser) {
+    const query: any = { code: dto.code.toUpperCase(), isActive: true };
+    if (user.role === 'provider') query.companyId = user.companyId;
+    const coupon = await this.couponRepo.findOne({ where: query });
 
     if (!coupon) throw new BadRequestException('Invalid or inactive coupon code');
 

@@ -19,32 +19,37 @@ export class ReportsController {
 
   @ApiOperation({ summary: 'Get renewals report' })
   @Get('renewals')
-  getRenewals(@Query('from') from?: string, @Query('to') to?: string) {
-    return this.reportsService.getRenewals(from, to);
+  getRenewals(@CurrentUser() user: AuthenticatedUser, @Query('from') from?: string, @Query('to') to?: string) {
+    const companyId = user.role === 'provider' ? (user.companyId || undefined) : undefined;
+    return this.reportsService.getRenewals(from, to, companyId);
   }
 
   @ApiOperation({ summary: 'Get revenue report' })
   @Get('revenue')
-  getRevenue(@Query('from') from?: string, @Query('to') to?: string) {
-    return this.reportsService.getRevenue(from, to);
+  getRevenue(@CurrentUser() user: AuthenticatedUser, @Query('from') from?: string, @Query('to') to?: string) {
+    const companyId = user.role === 'provider' ? (user.companyId || undefined) : undefined;
+    return this.reportsService.getRevenue(from, to, companyId);
   }
 
   @ApiOperation({ summary: 'Detailed customer-wise report' })
   @Get('customers-detailed')
-  getCustomersDetailed() {
-    return this.reportsService.getCustomerReport();
+  getCustomersDetailed(@CurrentUser() user: AuthenticatedUser) {
+    const companyId = user.role === 'provider' ? (user.companyId || undefined) : undefined;
+    return this.reportsService.getCustomerReport(companyId);
   }
 
   @ApiOperation({ summary: 'Detailed service-wise report' })
   @Get('services-detailed')
-  getServicesDetailed() {
-    return this.reportsService.getServiceReport();
+  getServicesDetailed(@CurrentUser() user: AuthenticatedUser) {
+    const companyId = user.role === 'provider' ? (user.companyId || undefined) : undefined;
+    return this.reportsService.getServiceReport(companyId);
   }
 
   @ApiOperation({ summary: 'Detailed payment status report' })
   @Get('payment-status-detailed')
-  getPaymentStatusDetailed() {
-    return this.reportsService.getPaymentStatusReport();
+  getPaymentStatusDetailed(@CurrentUser() user: AuthenticatedUser) {
+    const companyId = user.role === 'provider' ? (user.companyId || undefined) : undefined;
+    return this.reportsService.getPaymentStatusReport(companyId);
   }
 
   @ApiOperation({ summary: 'Get dashboard summary metrics' })
@@ -55,7 +60,7 @@ export class ReportsController {
     @CurrentUser() user?: AuthenticatedUser
   ) {
     // If the user is a provider, automatically scope the metrics to their company
-    const companyId = user?.role === 'provider' ? user.companyId : undefined;
+    const companyId = user?.role === 'provider' ? (user.companyId || undefined) : undefined;
     return this.reportsService.getDashboardSummary(from, to, companyId);
   }
 
@@ -64,13 +69,15 @@ export class ReportsController {
   @ApiOperation({ summary: 'Export reports to Excel or CSV' })
   @Get('export/:format/:type')
   async exportExcel(
+    @CurrentUser() user: AuthenticatedUser,
     @Res() res: Response, 
     @Param('format') format: 'xlsx' | 'csv',
     @Param('type') type: string,
     @Query('from') from?: string, 
     @Query('to') to?: string
   ) {
-    const buffer = await this.reportsService.exportToExcel(type, from, to, format);
+    const companyId = user.role === 'provider' ? (user.companyId || undefined) : undefined;
+    const buffer = await this.reportsService.exportToExcel(type, from, to, format, companyId);
     const contentType = format === 'csv' ? 'text/csv' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
     const extension = format === 'csv' ? 'csv' : 'xlsx';
     
@@ -84,12 +91,14 @@ export class ReportsController {
   @ApiOperation({ summary: 'Export reports to PDF' })
   @Get('export/pdf/:type')
   async exportPdf(
+    @CurrentUser() user: AuthenticatedUser,
     @Res() res: Response,
     @Param('type') type: string,
     @Query('from') from?: string,
     @Query('to') to?: string,
   ) {
-    const buffer = await this.reportsService.exportToPdf(from, to, type);
+    const companyId = user.role === 'provider' ? (user.companyId || undefined) : undefined;
+    const buffer = await this.reportsService.exportToPdf(from, to, type, companyId);
     res.set({
       'Content-Type': 'application/pdf',
       'Content-Disposition': `attachment; filename="${type}_report_${new Date().getTime()}.pdf"`,

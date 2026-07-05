@@ -42,10 +42,10 @@ export default function RootLayout() {
     
     if (user && inAuthGroup) {
       // User is signed in and trying to access an auth screen -> Redirect to app
-      router.replace('/(app)');
+      router.replace('/(app)' as any);
     } else if (!user && !inAuthGroup) {
       // User is not signed in and trying to access an app screen -> Redirect to login
-      router.replace('/(auth)/login');
+      router.replace('/(auth)/login' as any);
     }
 
     // Now that routing is settled, hide the splash screen
