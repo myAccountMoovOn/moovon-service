@@ -1,12 +1,12 @@
 import axios from 'axios';
 
-// Create a configured axios instance
 export const api = axios.create({
   // Use EXPO_PUBLIC_ prefix to access variables in Expo
   baseURL: process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3001/api/v1',
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 20000, // 20 second timeout — prevents infinite spinner
 });
 
 // Interceptor to inject Authorization token

@@ -14,10 +14,13 @@ import {
   MenuUnfoldOutlined,
   TagsOutlined,
   GiftOutlined,
-  DollarOutlined
+  DollarOutlined,
+  BgColorsOutlined,
+  MessageOutlined,
 } from '@ant-design/icons';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useBranding } from '../context/BrandingContext';
 
 const { Header, Sider, Content } = Layout;
 const { Title, Text } = Typography;
@@ -30,6 +33,7 @@ const AdminLayout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, signOut } = useAuth();
+  const { branding } = useBranding();
 
   const isMobile = !screens.lg;
 
@@ -41,21 +45,33 @@ const AdminLayout: React.FC = () => {
   const menuItems = [
     { key: '/admin/dashboard', icon: <DashboardOutlined />, label: 'Dashboard' },
     { key: '/admin/categories', icon: <TagsOutlined />, label: 'Categories' },
-    { key: '/admin/services', icon: <AppstoreOutlined />, label: 'Product and Services' },
+    { key: '/admin/services', icon: <AppstoreOutlined />, label: 'Products & Services' },
     { key: '/admin/packages', icon: <GiftOutlined />, label: 'Packages' },
     { key: '/admin/coupons', icon: <DollarOutlined />, label: 'Coupons' },
     { key: '/admin/customers', icon: <TeamOutlined />, label: 'Customers' },
     { key: '/admin/subscriptions', icon: <FileSyncOutlined />, label: 'Subscriptions' },
     { key: '/admin/payments', icon: <CreditCardOutlined />, label: 'Payments' },
     { key: '/admin/notifications', icon: <NotificationOutlined />, label: 'Notifications' },
+    { key: '/admin/templates', icon: <MessageOutlined />, label: 'Templates' },
     { key: '/admin/reports', icon: <BarChartOutlined />, label: 'Reports' },
+    { key: '/admin/brand-settings', icon: <BgColorsOutlined />, label: 'Brand Settings' },
   ];
 
   const userMenu = {
     items: [
-      { key: 'profile', icon: <UserOutlined />, label: 'Profile' },
-      { key: 'logout', icon: <LogoutOutlined />, label: 'Logout', onClick: handleLogout },
-    ]
+      {
+        key: 'profile',
+        icon: <UserOutlined />,
+        label: 'Profile',
+        onClick: () => navigate('/admin/brand-settings'),
+      },
+      {
+        key: 'logout',
+        icon: <LogoutOutlined />,
+        label: 'Logout',
+        onClick: handleLogout,
+      },
+    ],
   };
 
   const SideMenu = (
@@ -76,9 +92,13 @@ const AdminLayout: React.FC = () => {
       {!isMobile ? (
         <Sider trigger={null} collapsible collapsed={collapsed} theme="light" style={{ borderRight: '1px solid var(--color-border)' }}>
           <div style={{ height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottom: '1px solid var(--color-border)' }}>
-            <Title level={4} style={{ margin: 0, color: 'var(--color-primary)' }}>
-              {collapsed ? 'M' : 'Moovon'}
-            </Title>
+            {branding?.logo ? (
+              <img src={branding.logo} alt="Logo" style={{ maxHeight: 40, maxWidth: collapsed ? 40 : 160, objectFit: 'contain' }} />
+            ) : (
+              <Title level={4} style={{ margin: 0, color: 'var(--color-primary)' }}>
+                {collapsed ? (branding?.appName ? branding.appName[0] : 'M') : (branding?.appName || 'Moovon')}
+              </Title>
+            )}
           </div>
           {SideMenu}
         </Sider>
@@ -89,7 +109,15 @@ const AdminLayout: React.FC = () => {
           open={drawerVisible}
           size="default"
           styles={{ body: { padding: 0 } }}
-          title={<Title level={4} style={{ margin: 0, color: 'var(--color-primary)' }}>Moovon</Title>}
+          title={
+            branding?.logo ? (
+              <img src={branding.logo} alt="Logo" style={{ maxHeight: 30, objectFit: 'contain' }} />
+            ) : (
+              <Title level={4} style={{ margin: 0, color: 'var(--color-primary)' }}>
+                {branding?.appName || 'Moovon'}
+              </Title>
+            )
+          }
         >
           {SideMenu}
         </Drawer>

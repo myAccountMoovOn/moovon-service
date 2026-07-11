@@ -1,19 +1,35 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Image } from 'react-native';
 import { Text, Button, useTheme, Divider } from 'react-native-paper';
 import { useAuthStore } from '../../../store/authStore';
+import { useCompanyStore } from '../../../store/companyStore';
 import { useRouter } from 'expo-router';
 
 export default function ProfileScreen() {
   const theme = useTheme();
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
+  const { company, fetchMyCompany } = useCompanyStore();
   const router = useRouter();
+
+  React.useEffect(() => {
+    if (user?.role !== 'customer') {
+      fetchMyCompany();
+    }
+  }, [user]);
 
   return (
     <View style={[styles.container, { backgroundColor: '#f5f5f5' }]}>
       <View style={styles.header}>
-        <Text variant="headlineMedium" style={styles.headerText}>Profile</Text>
+        {company?.logo ? (
+          <View style={{ alignItems: 'center', marginBottom: 16 }}>
+            <Image 
+              source={{ uri: company.logo }} 
+              style={{ width: 80, height: 80, resizeMode: 'contain', borderRadius: 8 }} 
+            />
+          </View>
+        ) : null}
+        <Text variant="headlineMedium" style={styles.headerText}>{company?.name || 'Profile'}</Text>
       </View>
       
       <View style={styles.card}>
@@ -84,9 +100,18 @@ export default function ProfileScreen() {
               mode="outlined" 
               icon="chart-bar" 
               onPress={() => router.push('/(app)/reports' as any)}
-              style={{ borderRadius: 8 }}
+              style={{ borderRadius: 8, marginBottom: 12 }}
             >
               Business Reports
+            </Button>
+
+            <Button 
+              mode="outlined" 
+              icon="palette-swatch" 
+              onPress={() => router.push('/(app)/brand-settings' as any)}
+              style={{ borderRadius: 8 }}
+            >
+              Brand Settings (White Labeling)
             </Button>
           </View>
         )}

@@ -1,4 +1,4 @@
-import { IsEmail, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsString, MinLength, IsOptional } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class LoginDto {
@@ -59,6 +59,34 @@ export class OtpVerifyDto {
 }
 
 export class RegisterProviderDto {
+  @ApiProperty()
+  @IsEmail()
+  email: string;
+
+  @ApiProperty()
+  @IsString()
+  @MinLength(6)
+  password: string;
+
+  @ApiProperty()
+  @IsString()
+  companyName: string;
+
+  @ApiProperty()
+  @IsString()
+  name: string;
+
+  @ApiProperty()
+  @IsString()
+  phone: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  resellerCode?: string;
+}
+
+export class RegisterResellerDto {
   @ApiProperty()
   @IsEmail()
   email: string;

@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
+import { Injectable, UnauthorizedException, Logger, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -8,6 +8,7 @@ import { Profile, UserRole } from './entities/profile.entity';
 import { Customer } from '../customers/entities/customer.entity';
 import { Company } from '../companies/entities/company.entity';
 import { CompaniesService } from '../companies/companies.service';
+import { EmailTemplateService } from '../common/email-template.service';
 
 @Injectable()
 export class AuthService {
@@ -22,7 +23,7 @@ export class AuthService {
   private signupCache = new Map<string, { 
     otp: string, 
     dto: any, 
-    type: 'provider' | 'customer', 
+    type: 'reseller' | 'provider' | 'customer', 
     expiresAt: number 
   }>();
 
@@ -33,6 +34,7 @@ export class AuthService {
     @InjectRepository(Customer)
     private readonly customerRepository: Repository<Customer>,
     private readonly companiesService: CompaniesService,
+    private readonly emailTemplateService: EmailTemplateService,
   ) {
     const url = this.configService.getOrThrow<string>('SUPABASE_URL');
     const serviceKey = this.configService.getOrThrow<string>('SUPABASE_SERVICE_ROLE_KEY');
@@ -70,8 +72,11 @@ export class AuthService {
     // but we DO NOT return it to the frontend either.
     this.otpCache.set(email, { otp, session: data.session, expiresAt });
 
+    // Get user profile to find companyId
+    const profile = await this.profileRepository.findOne({ where: { id: data.user.id } });
+    
     // 4. Send the OTP via Custom SMTP
-    await this.sendCustomEmailOtp(email, otp);
+    await this.sendCustomEmailOtp(email, otp, profile?.companyId);
 
     return {
       requireOtp: true,
@@ -126,16 +131,47 @@ export class AuthService {
     return data.user.id;
   }
 
+  async registerResellerStep1(dto: import('./dto/auth.dto').RegisterResellerDto) {
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = Date.now() + 10 * 60 * 1000;
+
+    this.signupCache.set(dto.email, { otp, dto, type: 'reseller', expiresAt });
+
+    try {
+      await this.sendCustomEmailOtp(dto.email, otp);
+    } catch (e: any) {
+      this.signupCache.delete(dto.email);
+      throw new InternalServerErrorException(e.message);
+    }
+
+    return { message: 'OTP sent to email. Please verify to complete registration.' };
+  }
+
   async registerProviderStep1(dto: import('./dto/auth.dto').RegisterProviderDto) {
+    // Validate reseller code if provided
+    let resellerId = null;
+    if (dto.resellerCode) {
+      const reseller = await this.companiesService.findByCode(dto.resellerCode);
+      if (!reseller.isReseller) {
+        throw new InternalServerErrorException('Invalid Reseller Code');
+      }
+      resellerId = reseller.id;
+    }
+
     // 1. Generate a custom 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
 
-    // 2. Lock the signup data in memory
+    // 3. Lock the signup data in memory
     this.signupCache.set(dto.email, { otp, dto, type: 'provider', expiresAt });
 
-    // 3. Send the OTP
-    await this.sendCustomEmailOtp(dto.email, otp);
+    // 4. Send the OTP
+    try {
+      await this.sendCustomEmailOtp(dto.email, otp, resellerId);
+    } catch (e: any) {
+      this.signupCache.delete(dto.email);
+      throw new InternalServerErrorException(e.message);
+    }
 
     return { message: 'OTP sent to email. Please verify to complete registration.' };
   }
@@ -152,7 +188,13 @@ export class AuthService {
     this.signupCache.set(dto.email, { otp, dto, type: 'customer', expiresAt });
 
     // 4. Send the OTP
-    await this.sendCustomEmailOtp(dto.email, otp);
+    try {
+      const company = await this.companiesService.findByCode(dto.companyCode);
+      await this.sendCustomEmailOtp(dto.email, otp, company.id);
+    } catch (e: any) {
+      this.signupCache.delete(dto.email);
+      throw new InternalServerErrorException(e.message);
+    }
 
     return { message: 'OTP sent to email. Please verify to complete registration.' };
   }
@@ -179,7 +221,9 @@ export class AuthService {
     const { dto, type } = cached;
     let result: any;
 
-    if (type === 'provider') {
+    if (type === 'reseller') {
+      result = await this.registerReseller(dto);
+    } else if (type === 'provider') {
       result = await this.registerProvider(dto);
     } else {
       result = await this.registerCustomer(dto);
@@ -207,22 +251,40 @@ export class AuthService {
       user: {
         id: session.user.id,
         email: session.user.email,
-        role: type === 'provider' ? UserRole.PROVIDER : UserRole.CUSTOMER,
+        role: type === 'reseller' ? UserRole.RESELLER : (type === 'provider' ? UserRole.PROVIDER : UserRole.CUSTOMER),
       },
     };
   }
 
   // Internal actual registration logic (now private or kept public for testing, but typically only called by verifySignup)
-  async registerProvider(dto: import('./dto/auth.dto').RegisterProviderDto) {
-    const userId = await this.createSupabaseUser(dto.email, dto.password, UserRole.PROVIDER);
+  async registerReseller(dto: import('./dto/auth.dto').RegisterResellerDto) {
+    const userId = await this.createSupabaseUser(dto.email, dto.password, UserRole.RESELLER);
     
-    // Create the company
-    const company = await this.companiesService.create(dto.companyName);
+    // Create the company (isReseller = true)
+    const company = await this.companiesService.create(dto.companyName, undefined, true);
 
     // Update profile with companyId
     await this.profileRepository.update({ id: userId }, { companyId: company.id });
 
-    return { message: 'Provider registered successfully', companyCode: company.code, companyName: company.name };
+    return { message: 'Reseller registered successfully', companyCode: company.code, companyName: company.name };
+  }
+
+  async registerProvider(dto: import('./dto/auth.dto').RegisterProviderDto) {
+    const userId = await this.createSupabaseUser(dto.email, dto.password, UserRole.PROVIDER);
+    
+    let resellerId = null;
+    if (dto.resellerCode) {
+      const reseller = await this.companiesService.findByCode(dto.resellerCode);
+      resellerId = reseller.id;
+    }
+
+    // Create the company (isReseller = false) linked to resellerId
+    const company = await this.companiesService.create(dto.companyName, undefined, false, resellerId);
+
+    // Update profile with companyId
+    await this.profileRepository.update({ id: userId }, { companyId: company.id });
+
+    return { message: 'Business registered successfully', companyCode: company.code, companyName: company.name };
   }
 
   async registerCustomer(dto: import('./dto/auth.dto').RegisterCustomerDto) {
@@ -286,14 +348,30 @@ export class AuthService {
     return { message: 'Password updated successfully' };
   }
 
-  async sendCustomEmailOtp(email: string, otp: string) {
+  async sendCustomEmailOtp(email: string, otp: string, companyId?: string | null) {
     this.logger.log(`Requesting Custom SMTP OTP for ${email}`);
     
-    const host = this.configService.get<string>('SMTP_HOST') || 'smtp.gmail.com';
-    // Use parseInt to ensure we get a number, matching the ICA project
-    const port = parseInt(this.configService.get<string>('SMTP_PORT') || '587', 10);
-    const user = this.configService.get<string>('SMTP_USER');
-    const pass = this.configService.get<string>('SMTP_PASS');
+    let host = this.configService.get<string>('SMTP_HOST') || 'smtp.gmail.com';
+    let port = parseInt(this.configService.get<string>('SMTP_PORT') || '587', 10);
+    let user = this.configService.get<string>('SMTP_USER');
+    let pass = this.configService.get<string>('SMTP_PASS');
+    let from = this.configService.get<string>('SMTP_FROM') || `"Moovon Admin" <${user}>`;
+    let companyConfig = null;
+
+    // Try to load company-specific SMTP config
+    if (companyId) {
+      const company = await this.companiesService.findOne(companyId);
+      companyConfig = company;
+      const customConfig = await this.companiesService.getSmtpConfig(companyId);
+      if (customConfig) {
+        host = customConfig.host;
+        port = customConfig.port;
+        user = customConfig.user;
+        pass = customConfig.pass;
+        from = `"${customConfig.fromName || 'Admin'}" <${customConfig.fromEmail || user}>`;
+        this.logger.log(`Using custom SMTP for company ${companyId}`);
+      }
+    }
 
     if (!pass) {
       this.logger.warn(`[DEV MODE] SMTP not configured. OTP for ${email} is: ${otp}`);
@@ -304,20 +382,22 @@ export class AuthService {
     const transporter = nodemailer.createTransport({
       host,
       port,
-      secure: port === 465, // True for 465, false for 587 (Standard ICA logic)
-      auth: {
-        user,
-        pass,
-      },
+      secure: port === 465,
+      auth: { user, pass },
+      connectionTimeout: 10000,  // 10 seconds
+      greetingTimeout: 10000,
+      socketTimeout: 15000,
     });
 
     try {
+      const htmlContent = this.emailTemplateService.generateOtpEmail(otp, companyConfig);
+      
       await transporter.sendMail({
-        from: this.configService.get<string>('SMTP_FROM') || `"Moovon Admin" <${user}>`,
+        from,
         to: email,
-        subject: 'Your Moovon Verification Code',
+        subject: `${companyConfig?.appName || 'Moovon'} Verification Code`,
         text: `Your 6-digit verification code is: ${otp}. It expires in 10 minutes.`,
-        html: `<b>Your 6-digit verification code is: ${otp}</b><br/>It expires in 10 minutes.`,
+        html: htmlContent,
       });
       return { message: 'OTP sent successfully to your email' };
     } catch (error: any) {

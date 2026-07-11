@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Form, Input, Button, Card, Typography, Alert, message } from 'antd';
-import { UserOutlined, LockOutlined } from '@ant-design/icons';
-import { useNavigate, Navigate } from 'react-router-dom';
+import { Form, Input, Button, Card, Typography, Alert, Divider } from 'antd';
+import { UserOutlined, LockOutlined, ShopOutlined } from '@ant-design/icons';
+import { useNavigate, Navigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useBranding } from '../../context/BrandingContext';
 import { supabase } from '../../api/supabaseClient';
 
 const { Title, Text } = Typography;
@@ -11,6 +12,7 @@ const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const { user, role, isLoading } = useAuth();
+  const { branding } = useBranding();
   const navigate = useNavigate();
 
   // If already logged in, redirect based on role
@@ -30,9 +32,9 @@ const Login: React.FC = () => {
       if (error) {
         setErrorMsg(error.message);
       } else if (data.user) {
-        message.success('Logged in successfully');
-        const userRole = data.user.user_metadata?.role || data.user.app_metadata?.role || 'customer';
-        navigate(`/${userRole}/dashboard`, { replace: true });
+        const rawRole = data.user.user_metadata?.role || data.user.app_metadata?.role || 'customer';
+        const isAdmin = rawRole === 'provider' || rawRole === 'super_admin' || rawRole === 'admin';
+        navigate(isAdmin ? '/admin/dashboard' : '/customer/dashboard', { replace: true });
       }
     } catch (err: any) {
       setErrorMsg(err.message || 'An unexpected error occurred');
@@ -43,10 +45,13 @@ const Login: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', backgroundColor: 'var(--color-bg-sidebar)' }}>
-      <Card style={{ width: 400 }} className="card-shadow">
+      <Card style={{ width: 420 }} className="card-shadow">
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
-          <Title level={3} className="text-primary" style={{ margin: 0 }}>Moovon Service</Title>
-          <Text type="secondary">Sign in to your account</Text>
+          {branding?.logo ? (
+            <img src={branding.logo} alt="Logo" style={{ maxHeight: 64, objectFit: 'contain', marginBottom: 16 }} />
+          ) : null}
+          <Title level={3} className="text-primary" style={{ margin: 0 }}>{branding?.appName || 'Moovon Service'}</Title>
+          <Text type="secondary">{branding?.tagline || 'Sign in to your account'}</Text>
         </div>
 
         {errorMsg && <Alert message={errorMsg} type="error" showIcon style={{ marginBottom: 24 }} />}
@@ -64,7 +69,6 @@ const Login: React.FC = () => {
           >
             <Input.Password
               prefix={<LockOutlined />}
-              type="password"
               placeholder="Password"
               size="large"
             />
@@ -76,6 +80,16 @@ const Login: React.FC = () => {
             </Button>
           </Form.Item>
         </Form>
+
+        <Divider plain>Don't have an account?</Divider>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <Link to="/signup">
+            <Button block size="large">
+              Sign up for an Account
+            </Button>
+          </Link>
+        </div>
       </Card>
     </div>
   );

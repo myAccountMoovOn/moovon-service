@@ -23,6 +23,12 @@ export class AuthController {
     return this.authService.registerProviderStep1(dto);
   }
 
+  @ApiOperation({ summary: 'Register a new Reseller Step 1 (Sends OTP)' })
+  @Post('register-reseller-step1')
+  registerResellerStep1(@Body() dto: import('./dto/auth.dto').RegisterResellerDto) {
+    return this.authService.registerResellerStep1(dto);
+  }
+
   @ApiOperation({ summary: 'Register a new Customer with a Company Code Step 1 (Sends OTP)' })
   @Post('register-customer-step1')
   registerCustomerStep1(@Body() dto: import('./dto/auth.dto').RegisterCustomerDto) {
