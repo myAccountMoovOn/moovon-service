@@ -54,8 +54,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(currentSession?.user ?? null);
     
     if (currentSession?.user) {
-      const metadata = currentSession.user.user_metadata || currentSession.user.app_metadata;
-      setRole(metadata.role || 'customer');
+      // user_metadata is always an object {}, so || won't fall back — check both explicitly
+      const rawRole =
+        currentSession.user.user_metadata?.role ||
+        currentSession.user.app_metadata?.role ||
+        'customer';
+      // Map provider & super_admin to 'admin' for web routing
+      const mappedRole = (rawRole === 'provider' || rawRole === 'super_admin' || rawRole === 'admin')
+        ? 'admin'
+        : 'customer';
+      setRole(mappedRole);
     } else {
       setRole(null);
     }

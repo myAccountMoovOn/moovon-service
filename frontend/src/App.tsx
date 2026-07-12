@@ -1,12 +1,15 @@
 import React from 'react';
 import { RouterProvider } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { BrandingProvider } from './context/BrandingContext';
 import { router } from './router';
 
 const App: React.FC = () => {
   return (
     <AuthProvider>
-      <RouterProvider router={router} />
+      <BrandingProvider>
+        <RouterProvider router={router} />
+      </BrandingProvider>
     </AuthProvider>
   );
 };

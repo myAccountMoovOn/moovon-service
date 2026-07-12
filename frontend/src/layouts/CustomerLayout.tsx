@@ -10,6 +10,7 @@ import {
 } from '@ant-design/icons';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useBranding } from '../context/BrandingContext';
 
 const { Header, Content } = Layout;
 const { Title, Text } = Typography;
@@ -19,6 +20,7 @@ const CustomerLayout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, signOut } = useAuth();
+  const { branding, isLoadingBranding } = useBranding();
   const screens = useBreakpoint();
   const [drawerVisible, setDrawerVisible] = useState(false);
 
@@ -66,9 +68,22 @@ const CustomerLayout: React.FC = () => {
           />
         )}
         
-        <Title level={4} style={{ margin: 0, color: 'var(--color-primary)', marginRight: isMobile ? 0 : 48, flex: isMobile ? 1 : 'none', textAlign: isMobile ? 'center' : 'left' }}>
-          Moovon
-        </Title>
+        <div style={{ display: 'flex', alignItems: 'center', marginRight: isMobile ? 0 : 48, flex: isMobile ? 1 : 'none', justifyContent: isMobile ? 'center' : 'flex-start', gap: 8 }}>
+          {!isLoadingBranding && (
+            branding?.logo ? (
+              <>
+                <img src={branding.logo} alt="Logo" style={{ maxHeight: 40, objectFit: 'contain', flexShrink: 0 }} />
+                <Title level={5} style={{ margin: 0, color: 'var(--color-primary)', whiteSpace: 'nowrap' }}>
+                  {branding?.appName || branding?.name}
+                </Title>
+              </>
+            ) : (
+              <Title level={4} style={{ margin: 0, color: 'var(--color-primary)' }}>
+                {branding?.appName || branding?.name || 'Moovon'}
+              </Title>
+            )
+          )}
+        </div>
 
         {!isMobile && (
           <Menu

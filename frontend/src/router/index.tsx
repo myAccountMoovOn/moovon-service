@@ -1,5 +1,6 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import Login from '../pages/auth/Login';
+import Signup from '../pages/auth/Signup';
 import { ProtectedRoute } from '../components/ProtectedRoute';
 import AdminLayout from '../layouts/AdminLayout';
 import CustomerLayout from '../layouts/CustomerLayout';
@@ -19,6 +20,7 @@ import MockPayment from '../pages/admin/MockPayment';
 import Categories from '../pages/admin/Categories';
 import Packages from '../pages/admin/Packages';
 import Coupons from '../pages/admin/Coupons';
+import BrandSettings from '../pages/admin/BrandSettings';
 
 // Customer Pages
 import CustomerDashboard from '../pages/customer/Dashboard';
@@ -46,6 +48,10 @@ export const router = createBrowserRouter([
     element: <Login />,
   },
   {
+    path: '/signup',
+    element: <Signup />,
+  },
+  {
     path: '/mock-payment',
     element: <MockPayment />,
   },
@@ -69,6 +75,7 @@ export const router = createBrowserRouter([
           { path: 'categories', element: <Categories /> },
           { path: 'packages', element: <Packages /> },
           { path: 'coupons', element: <Coupons /> },
+          { path: 'brand-settings', element: <BrandSettings /> },
         ],
       },
     ],

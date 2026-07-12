@@ -138,15 +138,8 @@ export default function LoginScreen() {
 
         <View style={styles.footer}>
           <Text variant="bodyMedium">New to Moovon?</Text>
-          <Link href="/(auth)/signup-customer" asChild>
-            <Button mode="text">Sign up as a Customer</Button>
-          </Link>
-          
-          <View style={styles.divider} />
-          
-          <Text variant="bodyMedium">Own a business?</Text>
-          <Link href="/(auth)/signup-provider" asChild>
-            <Button mode="text">Register your Company</Button>
+          <Link href="/(auth)/signup" asChild>
+            <Button mode="text">Sign up for an Account</Button>
           </Link>
         </View>
 
