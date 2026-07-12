@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Patch, NotFoundException, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards, Patch, NotFoundException, Query, Req } from '@nestjs/common';
 import { CompaniesService } from './companies.service';
 import { Company } from './entities/company.entity';
 import { SupabaseAuthGuard } from '../common/guards/supabase-auth.guard';
@@ -40,18 +40,35 @@ export class CompaniesController {
   @Get('me')
   @UseGuards(SupabaseAuthGuard)
   async getMe(@CurrentUser() user: AuthenticatedUser) {
-    if (!user.companyId) {
+    let companyIdToUse = user.companyId;
+    
+    // Fallback: If customer profile is missing companyId (e.g. legacy accounts), fetch from customer table
+    if (!companyIdToUse && user.role === UserRole.CUSTOMER) {
+      try {
+        const customer = await this.profileRepository.manager.query(
+          'SELECT company_id FROM customers WHERE user_id = $1',
+          [user.id]
+        );
+        if (customer && customer.length > 0) {
+          companyIdToUse = customer[0].company_id;
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    if (!companyIdToUse) {
       if (user.role === UserRole.SUPER_ADMIN || user.role === UserRole.PROVIDER) {
-        // Auto-create a default company for the user
         const companyName = user.role === UserRole.SUPER_ADMIN ? 'Moovon Service' : 'My Company';
         const company = await this.companiesService.create(companyName);
         await this.profileRepository.update({ id: user.id }, { companyId: company.id });
-        user.companyId = company.id;
+        companyIdToUse = company.id;
       } else {
         return null;
       }
     }
-    const company = await this.companiesService.findOne(user.companyId);
+    
+    const company = await this.companiesService.findOne(companyIdToUse);
     
     // Fallback if an old company record doesn't have a code
     if (company && !company.code) {
@@ -62,47 +79,59 @@ export class CompaniesController {
     if (company && company.smtpPass) {
       company.smtpPass = '********'; // Mask password before sending to client
     }
+    
+    // Resolve waterfall branding
+    if (company) {
+      const resolvedBranding = await this.companiesService.getResolvedBranding(company.id);
+      Object.assign(company, resolvedBranding);
+    }
+    
     return company;
   }
 
   @Patch('me')
   @UseGuards(SupabaseAuthGuard, RolesGuard)
-  @Roles(UserRole.PROVIDER, UserRole.SUPER_ADMIN)
-  async updateMe(@CurrentUser() user: AuthenticatedUser, @Body() updateDto: Partial<Company>) {
-    if (!user.companyId) {
+  @Roles(UserRole.PROVIDER, UserRole.SUPER_ADMIN, UserRole.RESELLER)
+  async updateMe(@CurrentUser() user: AuthenticatedUser, @Req() req: any) {
+    const body = req.body;
+    
+    let companyIdToUse = user.companyId;
+    
+    if (!companyIdToUse) {
       if (user.role === UserRole.SUPER_ADMIN || user.role === UserRole.PROVIDER) {
         const companyName = user.role === UserRole.SUPER_ADMIN ? 'Moovon Service' : 'My Company';
         const company = await this.companiesService.create(companyName);
         await this.profileRepository.update({ id: user.id }, { companyId: company.id });
-        user.companyId = company.id;
+        companyIdToUse = company.id;
       } else {
         throw new Error('No company assigned to user');
       }
     }
-    return this.companiesService.update(user.companyId, updateDto);
+    
+    // Explicitly pick allowed fields to bypass ValidationPipe whitelist stripping since we don't have a DTO class with decorators
+    const allowedFields = [
+      'name', 'logo', 'customDomain', 'primaryColor', 'accentColor', 'fontFamily', 
+      'favicon', 'appName', 'tagline', 'appIconUrl', 'smtpHost', 'smtpPort', 
+      'smtpUser', 'smtpPass', 'smtpFromName', 'smtpFromEmail', 'supportEmail', 
+      'supportPhone', 'emailHeaderLogo', 'privacyPolicyUrl', 'termsUrl', 'footerText'
+    ];
+    
+    const updateDto: any = {};
+    for (const field of allowedFields) {
+      if (body[field] !== undefined) {
+        updateDto[field] = body[field];
+      }
+    }
+    
+    return this.companiesService.update(companyIdToUse, updateDto);
   }
 
   @Get(':id/branding')
   async getBranding(@Param('id') id: string) {
     try {
+      const resolved = await this.companiesService.getResolvedBranding(id);
       const company = await this.companiesService.findOne(id);
-      return {
-        id: company.id,
-        name: company.name,
-        logo: company.logo,
-        primaryColor: company.primaryColor,
-        accentColor: company.accentColor,
-        fontFamily: company.fontFamily,
-        favicon: company.favicon,
-        appName: company.appName,
-        tagline: company.tagline,
-        appIconUrl: company.appIconUrl,
-        privacyPolicyUrl: company.privacyPolicyUrl,
-        termsUrl: company.termsUrl,
-        footerText: company.footerText,
-        supportEmail: company.supportEmail,
-        supportPhone: company.supportPhone,
-      };
+      return { id: company.id, name: company.name, ...resolved };
     } catch (e) {
       throw new NotFoundException(`Branding for company ${id} not found`);
     }

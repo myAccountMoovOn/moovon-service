@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Form, Input, Button, Typography, message, Image, Alert, Tabs, ColorPicker, Select, InputNumber, Row, Col, Card, Divider } from 'antd';
+import { Form, Input, Button, Typography, message, Image, Alert, Tabs, InputNumber, Row, Col, Card, Divider } from 'antd';
 import { 
   BgColorsOutlined, 
   GlobalOutlined, 
@@ -47,16 +47,7 @@ const BrandSettings: React.FC = () => {
   const handleSave = async (values: any) => {
     setLoading(true);
     try {
-      const primaryColor = typeof values.primaryColor === 'string' ? values.primaryColor : values.primaryColor?.toHexString();
-      const accentColor = typeof values.accentColor === 'string' ? values.accentColor : values.accentColor?.toHexString();
-
-      const payload = {
-        ...values,
-        primaryColor,
-        accentColor,
-      };
-
-      await axiosInstance.patch('/companies/me', payload);
+      await axiosInstance.patch('/companies/me', values);
       setPreviewLogo(values.logo || null);
       setPreviewIcon(values.appIconUrl || null);
       message.success('Brand settings saved successfully!');
@@ -86,29 +77,6 @@ const BrandSettings: React.FC = () => {
             <Col xs={24} sm={12}>
               <Form.Item name="tagline" label="Tagline" extra="Catchphrase for login screens">
                 <Input placeholder="e.g. Never miss a renewal" size="large" />
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Row gutter={16}>
-            <Col xs={12} sm={8}>
-              <Form.Item name="primaryColor" label="Primary Color">
-                <ColorPicker showText size="large" />
-              </Form.Item>
-            </Col>
-            <Col xs={12} sm={8}>
-              <Form.Item name="accentColor" label="Accent Color">
-                <ColorPicker showText size="large" />
-              </Form.Item>
-            </Col>
-            <Col xs={24} sm={8}>
-              <Form.Item name="fontFamily" label="Font Family">
-                <Select size="large" options={[
-                  { label: 'System Default', value: '' },
-                  { label: 'Inter', value: 'Inter' },
-                  { label: 'Roboto', value: 'Roboto' },
-                  { label: 'Outfit', value: 'Outfit' },
-                ]} />
               </Form.Item>
             </Col>
           </Row>

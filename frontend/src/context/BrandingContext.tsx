@@ -43,19 +43,20 @@ export const BrandingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       // First try to load via user's company if logged in
       if (user) {
         const res = await axiosInstance.get('/companies/me');
-        if (res.data) {
-          setBranding(res.data);
-          applyBranding(res.data);
+        // Backend wraps all responses in { success, data, message } envelope
+        const company = res.data?.data ?? res.data;
+        console.log('[BrandingContext] Resolved company:', company?.id, '| logo:', company?.logo, '| appName:', company?.appName);
+        if (company) {
+          setBranding(company);
+          applyBranding(company);
           return;
         }
       }
       
       // If not logged in or no company, we could check the custom domain
-      // e.g., if (window.location.hostname !== 'moovon.app') { ... fetch by domain }
-      
       setBranding(null);
     } catch (e) {
-      console.error('Failed to fetch branding', e);
+      console.error('[BrandingContext] Failed to fetch branding', e);
       setBranding(null);
     } finally {
       setIsLoadingBranding(false);
@@ -63,11 +64,9 @@ export const BrandingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const applyBranding = (data: Branding) => {
-    if (data.primaryColor) {
-      document.documentElement.style.setProperty('--color-primary', data.primaryColor);
-    } else {
-      document.documentElement.style.removeProperty('--color-primary');
-    }
+    // NOTE: Color theme is fixed to the default blue. Do NOT apply primaryColor here.
+    // Always remove any previously set color override so the default CSS always wins.
+    document.documentElement.style.removeProperty('--color-primary');
     
     if (data.appName) {
       document.title = data.appName;

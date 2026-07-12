@@ -33,7 +33,7 @@ const AdminLayout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, signOut } = useAuth();
-  const { branding } = useBranding();
+  const { branding, isLoadingBranding } = useBranding();
 
   const isMobile = !screens.lg;
 
@@ -91,15 +91,24 @@ const AdminLayout: React.FC = () => {
     <Layout style={{ minHeight: '100vh' }}>
       {!isMobile ? (
         <Sider trigger={null} collapsible collapsed={collapsed} theme="light" style={{ borderRight: '1px solid var(--color-border)' }}>
-          <div style={{ height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottom: '1px solid var(--color-border)' }}>
-            {branding?.logo ? (
-              <img src={branding.logo} alt="Logo" style={{ maxHeight: 40, maxWidth: collapsed ? 40 : 160, objectFit: 'contain' }} />
+          <div style={{ height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottom: '1px solid var(--color-border)', gap: 8, padding: '0 8px' }}>
+          {!isLoadingBranding && (
+            branding?.logo ? (
+              <>
+                <img src={branding.logo} alt="Logo" style={{ maxHeight: 36, maxWidth: collapsed ? 36 : 100, objectFit: 'contain', flexShrink: 0 }} />
+                {!collapsed && (
+                  <Title level={5} style={{ margin: 0, color: 'var(--color-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 100 }}>
+                    {branding?.appName || branding?.name}
+                  </Title>
+                )}
+              </>
             ) : (
               <Title level={4} style={{ margin: 0, color: 'var(--color-primary)' }}>
-                {collapsed ? (branding?.appName ? branding.appName[0] : 'M') : (branding?.appName || 'Moovon')}
+                {collapsed ? (branding?.appName ? branding.appName[0] : 'M') : (branding?.appName || branding?.name || 'Moovon')}
               </Title>
-            )}
-          </div>
+            )
+          )}
+        </div>
           {SideMenu}
         </Sider>
       ) : (

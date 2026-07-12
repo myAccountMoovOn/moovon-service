@@ -1,77 +1,110 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Image } from 'react-native';
+import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { Text, TextInput, Button, useTheme, Surface } from 'react-native-paper';
-import { Link, router } from 'expo-router';
+import { router } from 'expo-router';
 
 import { useAuthStore } from '../../store/authStore';
 
-export default function LoginScreen() {
+export default function SignupCustomerScreen() {
   const theme = useTheme();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [formData, setFormData] = useState({
+    companyCode: '',
+    name: '',
+    phone: '',
+    email: '',
+    password: '',
+  });
   const [otp, setOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  
-  const login = useAuthStore((state) => state.login);
-  const verifyOtp = useAuthStore((state) => state.verifyOtp);
+
+  const registerCustomerStep1 = useAuthStore((state) => state.registerCustomerStep1);
+  const verifySignup = useAuthStore((state) => state.verifySignup);
   const isLoading = useAuthStore((state) => state.isLoading);
   const error = useAuthStore((state) => state.error);
   const clearError = useAuthStore((state) => state.clearError);
 
-  const handleLogin = async () => {
-    if (!email || !password) return;
+  const handleSignup = async () => {
+    if (!formData.email || !formData.password || !formData.companyCode) return;
     clearError();
     try {
-      await login({ email, password });
+      await registerCustomerStep1(formData);
       setOtpSent(true);
     } catch (err) {
-      // Error is handled by store
+      // Error handled by store
     }
   };
 
   const handleVerifyOtp = async () => {
-    if (!email || !otp) return;
+    if (!formData.email || !otp) return;
     clearError();
     try {
-      await verifyOtp(email, otp);
-      // On success, redirect to home
+      await verifySignup(formData.email, otp);
       router.replace('/');
     } catch (err) {
       // Error handled by store
     }
   };
 
-  return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <View style={styles.header}>
-        <View style={styles.fakeShadow} />
-        <Image source={require('../../assets/images/favicon.png')} style={styles.logoImage} resizeMode="contain" />
-        <Text variant="displaySmall" style={{ color: theme.colors.primary, fontWeight: 'bold' }}>
-          Moovon
-        </Text>
-        <Text variant="bodyLarge" style={styles.subtitle}>
-          {otpSent ? 'Two-Factor Authentication' : 'Sign in to your account'}
-        </Text>
-      </View>
+  const updateField = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
 
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}
+  return (
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? undefined : 'padding'}
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent} 
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets={true}
       >
-        <ScrollView 
-          contentContainerStyle={styles.scrollContent} 
-          keyboardShouldPersistTaps="handled"
-          automaticallyAdjustKeyboardInsets={true}
-        >
+        <View style={{ flex: 1 }} />
+        
+        <View style={styles.header}>
+          <Text variant="headlineMedium" style={{ fontWeight: 'bold' }}>
+            Join your Company
+          </Text>
+          <Text variant="bodyMedium" style={styles.subtitle}>
+            Enter the company code provided by your business owner to get started.
+          </Text>
+        </View>
+
         <Surface style={styles.card} elevation={2}>
           {!otpSent ? (
             <>
               <TextInput
+                label="Company Code *"
+                mode="outlined"
+                value={formData.companyCode}
+                onChangeText={(v) => updateField('companyCode', v)}
+                autoCapitalize="characters"
+                style={styles.input}
+              />
+
+              <View style={styles.divider} />
+
+              <TextInput
+                label="Full Name"
+                mode="outlined"
+                value={formData.name}
+                onChangeText={(v) => updateField('name', v)}
+                style={styles.input}
+              />
+              <TextInput
+                label="Phone Number"
+                mode="outlined"
+                value={formData.phone}
+                onChangeText={(v) => updateField('phone', v)}
+                keyboardType="phone-pad"
+                style={styles.input}
+              />
+              <TextInput
                 label="Email"
                 mode="outlined"
-                value={email}
-                onChangeText={setEmail}
+                value={formData.email}
+                onChangeText={(v) => updateField('email', v)}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 style={styles.input}
@@ -79,8 +112,8 @@ export default function LoginScreen() {
               <TextInput
                 label="Password"
                 mode="outlined"
-                value={password}
-                onChangeText={setPassword}
+                value={formData.password}
+                onChangeText={(v) => updateField('password', v)}
                 secureTextEntry={!showPassword}
                 right={<TextInput.Icon icon={showPassword ? "eye-off" : "eye"} onPress={() => setShowPassword(!showPassword)} />}
                 style={styles.input}
@@ -92,17 +125,17 @@ export default function LoginScreen() {
 
               <Button
                 mode="contained"
-                onPress={handleLogin}
+                onPress={handleSignup}
                 loading={isLoading}
                 style={styles.button}
                 contentStyle={styles.buttonContent}
               >
-                Sign In
+                Create Account
               </Button>
             </>
           ) : (
             <>
-              <Text style={{ marginBottom: 16 }}>We sent a 6-digit pin to {email}</Text>
+              <Text style={{ marginBottom: 16 }}>We sent a 6-digit pin to {formData.email}</Text>
               <TextInput
                 label="6-Digit OTP"
                 mode="outlined"
@@ -122,7 +155,7 @@ export default function LoginScreen() {
                 style={styles.button}
                 contentStyle={styles.buttonContent}
               >
-                Verify & Login
+                Verify & Register
               </Button>
               <Button
                 mode="text"
@@ -137,16 +170,14 @@ export default function LoginScreen() {
         </Surface>
 
         <View style={styles.footer}>
-          <Text variant="bodyMedium">New to Moovon?</Text>
-          <Link href="/(auth)/signup" asChild>
-            <Button mode="text">Sign up for an Account</Button>
-          </Link>
+          <Button mode="text" onPress={() => router.back()}>
+            Back to Login
+          </Button>
         </View>
 
         <View style={{ flex: 1 }} />
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -157,32 +188,9 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     padding: 24,
-    paddingTop: 16,
   },
   header: {
-    alignItems: 'center',
-    marginBottom: 8,
-    marginTop: 120,
-  },
-  fakeShadow: {
-    position: 'absolute',
-    top: 35,
-    width: 50,
-    height: 40,
-    backgroundColor: '#ffffff',
-    borderRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 15 },
-    shadowOpacity: 0.8,
-    shadowRadius: 8,
-    elevation: 24,
-  },
-  logoImage: {
-    width: 80,
-    height: 80,
-    marginBottom: 16,
-    borderRadius: 40,
-    backgroundColor: '#ffffff',
+    marginBottom: 24,
   },
   subtitle: {
     marginTop: 8,
@@ -191,7 +199,7 @@ const styles = StyleSheet.create({
   card: {
     padding: 24,
     borderRadius: 12,
-    marginBottom: 32,
+    marginBottom: 24,
   },
   input: {
     marginBottom: 16,
@@ -203,13 +211,14 @@ const styles = StyleSheet.create({
   buttonContent: {
     paddingVertical: 6,
   },
-  footer: {
-    alignItems: 'center',
-  },
   divider: {
     height: 1,
-    width: '50%',
     backgroundColor: '#e0e0e0',
     marginVertical: 16,
+    marginBottom: 24,
+  },
+  footer: {
+    alignItems: 'center',
+    paddingBottom: 40,
   },
 });

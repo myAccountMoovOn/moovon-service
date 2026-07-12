@@ -91,4 +91,51 @@ export class CompaniesService {
       fromEmail: company.smtpFromEmail,
     };
   }
+
+  async getResolvedBranding(companyId: string) {
+    const company = await this.findOne(companyId);
+    
+    const branding: any = {
+      logo: company.logo,
+      primaryColor: company.primaryColor,
+      accentColor: company.accentColor,
+      fontFamily: company.fontFamily,
+      favicon: company.favicon,
+      appName: company.appName || company.name, // Fallback to company name if no appName
+      tagline: company.tagline,
+      appIconUrl: company.appIconUrl,
+      privacyPolicyUrl: company.privacyPolicyUrl,
+      termsUrl: company.termsUrl,
+      footerText: company.footerText,
+      supportEmail: company.supportEmail,
+      supportPhone: company.supportPhone,
+    };
+    
+    // Find Reseller
+    let reseller = null;
+    if (company.resellerId) {
+      reseller = await this.companiesRepository.findOne({ where: { id: company.resellerId } });
+    }
+    
+    // Find Super Admin Company (Assuming there's a main company or just hardcode defaults)
+    const superAdmin = await this.companiesRepository.findOne({ where: { isReseller: false, name: 'Moovon Service' } });
+    
+    const fallbacks = [reseller, superAdmin].filter(Boolean);
+    
+    for (const fallback of fallbacks) {
+      if (!fallback) continue;
+      for (const key of Object.keys(branding)) {
+        if (!branding[key]) {
+          branding[key] = (fallback as any)[key];
+        }
+      }
+    }
+    
+    // Final hardcoded defaults if still null
+    if (!branding.appName) branding.appName = 'Moovon';
+    if (!branding.tagline) branding.tagline = 'Subscription Management Platform';
+    if (!branding.footerText) branding.footerText = '© 2026 Moovon. All rights reserved.';
+    
+    return branding;
+  }
 }

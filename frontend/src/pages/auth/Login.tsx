@@ -1,14 +1,18 @@
 import React, { useState } from 'react';
-import { Form, Input, Button, Card, Typography, Alert, Divider } from 'antd';
-import { UserOutlined, LockOutlined, ShopOutlined } from '@ant-design/icons';
+import { Form, Input, Button, Card, Typography, Alert, Divider, Steps } from 'antd';
+import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { useNavigate, Navigate, Link } from 'react-router-dom';
+import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import { useBranding } from '../../context/BrandingContext';
 import { supabase } from '../../api/supabaseClient';
 
 const { Title, Text } = Typography;
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1';
 
 const Login: React.FC = () => {
+  const [step, setStep] = useState(0);
+  const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const { user, role, isLoading } = useAuth();
@@ -24,20 +28,45 @@ const Login: React.FC = () => {
     setLoading(true);
     setErrorMsg(null);
     try {
-      const { error, data } = await supabase.auth.signInWithPassword({
+      const res = await axios.post(`${API_URL}/auth/login`, {
         email: values.email,
         password: values.password,
       });
 
-      if (error) {
-        setErrorMsg(error.message);
-      } else if (data.user) {
-        const rawRole = data.user.user_metadata?.role || data.user.app_metadata?.role || 'customer';
-        const isAdmin = rawRole === 'provider' || rawRole === 'super_admin' || rawRole === 'admin';
+      if (res.data?.data?.requireOtp) {
+        setEmail(values.email);
+        setStep(1);
+      }
+    } catch (err: any) {
+      setErrorMsg(err.response?.data?.message || err.message || 'An unexpected error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerify = async (values: any) => {
+    setLoading(true);
+    setErrorMsg(null);
+    try {
+      const res = await axios.post(`${API_URL}/auth/verify-otp`, {
+        email,
+        token: values.otp,
+      });
+
+      const { session, user: backendUser } = res.data?.data || {};
+      if (session) {
+        // Hydrate the supabase client with the session so AuthContext detects it
+        await supabase.auth.setSession({
+          access_token: session.access_token,
+          refresh_token: session.refresh_token,
+        });
+
+        const rawRole = backendUser.role || 'customer';
+        const isAdmin = rawRole === 'provider' || rawRole === 'super_admin' || rawRole === 'admin' || rawRole === 'reseller';
         navigate(isAdmin ? '/admin/dashboard' : '/customer/dashboard', { replace: true });
       }
     } catch (err: any) {
-      setErrorMsg(err.message || 'An unexpected error occurred');
+      setErrorMsg(err.response?.data?.message || err.message || 'Invalid OTP');
     } finally {
       setLoading(false);
     }
@@ -56,30 +85,52 @@ const Login: React.FC = () => {
 
         {errorMsg && <Alert message={errorMsg} type="error" showIcon style={{ marginBottom: 24 }} />}
 
-        <Form name="normal_login" onFinish={onFinish} layout="vertical">
-          <Form.Item
-            name="email"
-            rules={[{ required: true, message: 'Please input your Email!' }, { type: 'email', message: 'Invalid email address' }]}
-          >
-            <Input prefix={<UserOutlined />} placeholder="Email address" size="large" />
-          </Form.Item>
-          <Form.Item
-            name="password"
-            rules={[{ required: true, message: 'Please input your Password!' }]}
-          >
-            <Input.Password
-              prefix={<LockOutlined />}
-              placeholder="Password"
-              size="large"
-            />
-          </Form.Item>
+        {step === 0 ? (
+          <Form name="normal_login" onFinish={onFinish} layout="vertical">
+            <Form.Item
+              name="email"
+              rules={[{ required: true, message: 'Please input your Email!' }, { type: 'email', message: 'Invalid email address' }]}
+            >
+              <Input prefix={<UserOutlined />} placeholder="Email address" size="large" />
+            </Form.Item>
+            <Form.Item
+              name="password"
+              rules={[{ required: true, message: 'Please input your Password!' }]}
+            >
+              <Input.Password
+                prefix={<LockOutlined />}
+                placeholder="Password"
+                size="large"
+              />
+            </Form.Item>
 
-          <Form.Item>
-            <Button type="primary" htmlType="submit" size="large" loading={loading} block>
-              Log in
+            <Form.Item>
+              <Button type="primary" htmlType="submit" size="large" loading={loading} block>
+                Log in
+              </Button>
+            </Form.Item>
+          </Form>
+        ) : (
+          <Form layout="vertical" onFinish={handleVerify}>
+            <Alert
+              type="info"
+              message="Two-Factor Authentication"
+              description={`We sent a 6-digit code to ${email}.`}
+              style={{ marginBottom: 16 }}
+            />
+            <Form.Item name="otp" label="Verification Code" rules={[{ required: true, len: 6, message: 'Enter the 6-digit code' }]}>
+              <Input placeholder="Enter 6-digit OTP" maxLength={6} size="large" style={{ textAlign: 'center', letterSpacing: 8, fontSize: 18 }} />
+            </Form.Item>
+            <Form.Item>
+              <Button type="primary" htmlType="submit" block size="large" loading={loading}>
+                Verify & Continue
+              </Button>
+            </Form.Item>
+            <Button type="link" block onClick={() => setStep(0)} disabled={loading}>
+              Back to Login
             </Button>
-          </Form.Item>
-        </Form>
+          </Form>
+        )}
 
         <Divider plain>Don't have an account?</Divider>
 
