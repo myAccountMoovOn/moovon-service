@@ -5,6 +5,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../../store/authStore';
 import { useDashboardStore } from '../../../store/dashboardStore';
+import { useCustomerDashboardStore } from '../../../store/customerDashboardStore';
 
 export default function HomeScreen() {
   const theme = useTheme();
@@ -39,8 +40,12 @@ export default function HomeScreen() {
     // Automatically fetch metrics when the screen mounts
     if (user?.role === 'provider') {
       fetchDashboardMetrics();
+    } else if (user?.role === 'customer') {
+      useCustomerDashboardStore.getState().fetchCustomerData();
     }
   }, [user]);
+
+  const { subscriptions: mySubs, isLoading: isCustLoading } = useCustomerDashboardStore();
 
   // A quick helper to render a stat card
   const renderMetricCard = (id: string, title: string, value: string | number, icon: string) => {
@@ -212,14 +217,39 @@ export default function HomeScreen() {
           ) : null}
         </ScrollView>
       ) : (
-        <View style={styles.card}>
-          <Text variant="titleMedium" style={{ color: theme.colors.primary, marginBottom: 8, fontWeight: 'bold' }}>
-            Customer Dashboard
-          </Text>
-          <Text variant="bodyLarge" style={{ color: '#333' }}>
-            Your active subscriptions and bookings will appear here soon.
-          </Text>
-        </View>
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl refreshing={isCustLoading} onRefresh={() => useCustomerDashboardStore.getState().fetchCustomerData()} />
+          }
+        >
+          <View style={styles.card}>
+            <Text variant="titleMedium" style={{ color: theme.colors.primary, marginBottom: 8, fontWeight: 'bold' }}>
+              My Active Subscriptions
+            </Text>
+            {isCustLoading ? (
+              <ActivityIndicator animating={true} style={{ marginTop: 20 }} />
+            ) : mySubs && mySubs.length > 0 ? (
+              mySubs.map((sub: any) => (
+                <View key={sub.id} style={{ paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#eee' }}>
+                  <Text variant="titleMedium">{sub.package?.name || 'Subscription'}</Text>
+                  <Text variant="bodyMedium" style={{ color: '#666' }}>
+                    Status: <Text style={{ color: sub.status === 'active' ? 'green' : 'orange' }}>{sub.status}</Text>
+                  </Text>
+                  {sub.currentPeriodEnd && (
+                    <Text variant="bodySmall" style={{ color: '#888' }}>
+                      Renews: {new Date(sub.currentPeriodEnd).toLocaleDateString()}
+                    </Text>
+                  )}
+                </View>
+              ))
+            ) : (
+              <Text variant="bodyLarge" style={{ color: '#666', marginTop: 10 }}>
+                You don't have any active subscriptions yet.
+              </Text>
+            )}
+          </View>
+        </ScrollView>
       )}
     </View>
   );

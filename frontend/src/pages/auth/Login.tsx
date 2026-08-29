@@ -8,7 +8,7 @@ import { useBranding } from '../../context/BrandingContext';
 import { supabase } from '../../api/supabaseClient';
 
 const { Title, Text } = Typography;
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1';
+const API_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1';
 
 const Login: React.FC = () => {
   const [step, setStep] = useState(0);

@@ -392,13 +392,17 @@ export class AuthService {
     try {
       const htmlContent = this.emailTemplateService.generateOtpEmail(otp, companyConfig);
       
-      await transporter.sendMail({
+      // Send email asynchronously in the background so the frontend doesn't hang
+      transporter.sendMail({
         from,
         to: email,
         subject: `${companyConfig?.appName || 'Moovon'} Verification Code`,
         text: `Your 6-digit verification code is: ${otp}. It expires in 10 minutes.`,
         html: htmlContent,
+      }).catch(err => {
+        this.logger.error(`Failed to send background SMTP OTP: ${err.message}`);
       });
+      
       return { message: 'OTP sent successfully to your email' };
     } catch (error: any) {
       this.logger.error(`Failed to send Custom SMTP OTP: ${error.message}`);

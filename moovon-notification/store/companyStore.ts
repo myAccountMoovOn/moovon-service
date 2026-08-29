@@ -5,8 +5,26 @@ export interface Company {
   id: string;
   name: string;
   code: string;
+  appName?: string | null;
+  tagline?: string | null;
   logo: string | null;
+  primaryColor?: string | null;
+  accentColor?: string | null;
+  favicon?: string | null;
+  appIconUrl?: string | null;
   customDomain: string | null;
+  smtpHost?: string | null;
+  smtpPort?: string | null;
+  smtpUser?: string | null;
+  smtpPass?: string | null;
+  smtpFromName?: string | null;
+  smtpFromEmail?: string | null;
+  emailHeaderLogo?: string | null;
+  supportEmail?: string | null;
+  supportPhone?: string | null;
+  privacyPolicyUrl?: string | null;
+  termsUrl?: string | null;
+  footerText?: string | null;
   createdAt: string;
 }
 
