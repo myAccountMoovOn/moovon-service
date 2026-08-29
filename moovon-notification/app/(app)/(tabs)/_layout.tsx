@@ -11,6 +11,7 @@ export default function AppLayout() {
       <Tabs.Screen name="services" options={{ title: 'Services' }} />
       <Tabs.Screen name="customers" options={{ title: 'Customers' }} />
       <Tabs.Screen name="subscriptions" options={{ title: 'Subscriptions' }} />
+      <Tabs.Screen name="billing" options={{ title: 'Billing' }} />
       <Tabs.Screen name="profile" options={{ title: 'Profile' }} />
     </Tabs>
   );

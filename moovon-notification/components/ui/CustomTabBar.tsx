@@ -5,20 +5,24 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTheme } from 'react-native-paper';
+import { useAuthStore } from '../../store/authStore';
 
 export default function CustomTabBar({ state, descriptors, navigation }: any) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const theme = useTheme();
+  const user = useAuthStore((state) => state.user);
   
   // Adjust bottom spacing to avoid overlapping with phone's system navigation
   const bottomSpacing = insets.bottom > 0 ? insets.bottom + 10 : 25;
 
-  // Moovon Primary Blue color for the active icon
-  const activeColor = '#0057e7'; 
+  // Use dynamic theme primary color
+  const activeColor = theme.colors.primary; 
   const inactiveColor = '#888888';
   
   // Matching glassy blue background for the selected item
-  const activeBg = 'rgba(0, 87, 231, 0.12)';
+  const activeBg = `${theme.colors.primary}1F`; // 12% opacity hex
 
   const focusedRoute = state.routes[state.index];
   const focusedOptions = descriptors[focusedRoute.key].options;
@@ -45,6 +49,18 @@ export default function CustomTabBar({ state, descriptors, navigation }: any) {
           const { options } = descriptors[route.key];
           if (options.href === null || options.tabBarStyle?.display === 'none') {
             return null;
+          }
+
+          // Role-based filtering
+          const isCustomer = user?.role === 'customer';
+          if (isCustomer) {
+            if (['services', 'customers', 'subscriptions'].includes(route.name)) {
+              return null; // Hide provider tabs for customers
+            }
+          } else {
+            if (['billing'].includes(route.name)) {
+              return null; // Hide customer tabs for providers
+            }
           }
 
           const label =
@@ -93,6 +109,10 @@ export default function CustomTabBar({ state, descriptors, navigation }: any) {
           else if (route.name === 'subscriptions') {
             iconName = isFocused ? 'card' : 'card-outline';
             tabLabel = 'Subs';
+          }
+          else if (route.name === 'billing') {
+            iconName = isFocused ? 'receipt' : 'receipt-outline';
+            tabLabel = 'Billing';
           }
           else if (route.name === 'profile') { 
             iconName = isFocused ? 'person' : 'person-outline'; 

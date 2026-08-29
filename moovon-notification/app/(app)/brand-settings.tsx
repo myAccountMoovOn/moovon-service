@@ -4,14 +4,25 @@ import { Text, TextInput, Button, IconButton, useTheme } from 'react-native-pape
 import { useRouter } from 'expo-router';
 import { useCompanyStore } from '../../store/companyStore';
 
+import GeneralDetailsForm from '../../components/brand-settings/GeneralDetailsForm';
+import BrandingColorsForm from '../../components/brand-settings/BrandingColorsForm';
+import CustomDomainForm from '../../components/brand-settings/CustomDomainForm';
+import SmtpConfigForm from '../../components/brand-settings/SmtpConfigForm';
+import SupportLegalForm from '../../components/brand-settings/SupportLegalForm';
+
 export default function BrandSettingsScreen() {
   const router = useRouter();
   const theme = useTheme();
   const { company, fetchMyCompany, updateMyCompany, isLoading } = useCompanyStore();
 
-  const [name, setName] = useState('');
-  const [logo, setLogo] = useState('');
-  const [customDomain, setCustomDomain] = useState('');
+  const [formData, setFormData] = useState<any>({
+    name: '', appName: '', tagline: '', logo: '', primaryColor: '',
+    accentColor: '', favicon: '', appIconUrl: '', customDomain: '',
+    smtpHost: '', smtpPort: '', smtpUser: '', smtpPass: '',
+    smtpFromName: '', smtpFromEmail: '', emailHeaderLogo: '',
+    supportEmail: '', supportPhone: '', privacyPolicyUrl: '',
+    termsUrl: '', footerText: ''
+  });
 
   useEffect(() => {
     fetchMyCompany();
@@ -19,16 +30,40 @@ export default function BrandSettingsScreen() {
 
   useEffect(() => {
     if (company) {
-      setName(company.name || '');
-      setLogo(company.logo || '');
-      setCustomDomain(company.customDomain || '');
+      setFormData({
+        name: company.name || '',
+        appName: company.appName || '',
+        tagline: company.tagline || '',
+        logo: company.logo || '',
+        primaryColor: company.primaryColor || '',
+        accentColor: company.accentColor || '',
+        favicon: company.favicon || '',
+        appIconUrl: company.appIconUrl || '',
+        customDomain: company.customDomain || '',
+        smtpHost: company.smtpHost || '',
+        smtpPort: company.smtpPort || '',
+        smtpUser: company.smtpUser || '',
+        smtpPass: company.smtpPass || '',
+        smtpFromName: company.smtpFromName || '',
+        smtpFromEmail: company.smtpFromEmail || '',
+        emailHeaderLogo: company.emailHeaderLogo || '',
+        supportEmail: company.supportEmail || '',
+        supportPhone: company.supportPhone || '',
+        privacyPolicyUrl: company.privacyPolicyUrl || '',
+        termsUrl: company.termsUrl || '',
+        footerText: company.footerText || ''
+      });
     }
   }, [company]);
 
+  const handleChange = (key: string, value: string) => {
+    setFormData((prev: any) => ({ ...prev, [key]: value }));
+  };
+
   const handleSave = async () => {
-    if (!name.trim()) return Alert.alert('Error', 'Company name is required');
+    if (!formData.name?.trim()) return Alert.alert('Error', 'Company name is required');
     try {
-      await updateMyCompany({ name, logo, customDomain });
+      await updateMyCompany(formData);
       Alert.alert('Success', 'Brand settings updated successfully!');
       router.back();
     } catch (e: any) {
@@ -48,57 +83,13 @@ export default function BrandSettingsScreen() {
           Customize how your customers experience your platform. You can set a custom domain and logo for white-labeling.
         </Text>
 
-        <TextInput
-          label="Company Name"
-          value={name}
-          onChangeText={setName}
-          mode="outlined"
-          style={styles.input}
-        />
+        <GeneralDetailsForm formData={formData} handleChange={handleChange} />
+        <BrandingColorsForm formData={formData} handleChange={handleChange} />
+        <CustomDomainForm formData={formData} handleChange={handleChange} />
+        <SmtpConfigForm formData={formData} handleChange={handleChange} />
+        <SupportLegalForm formData={formData} handleChange={handleChange} />
 
-        <TextInput
-          label="Logo URL"
-          value={logo}
-          onChangeText={setLogo}
-          mode="outlined"
-          placeholder="https://example.com/logo.png"
-          autoCapitalize="none"
-          style={styles.input}
-        />
-
-        {logo ? (
-          <View style={styles.previewContainer}>
-            <Text variant="bodySmall" style={{ marginBottom: 8, color: '#666' }}>Logo Preview:</Text>
-            <Image 
-              source={{ uri: logo }} 
-              style={{ width: 100, height: 100, resizeMode: 'contain', borderRadius: 8, backgroundColor: '#f9f9f9' }} 
-              onError={() => Alert.alert('Error', 'Failed to load image from URL')}
-            />
-          </View>
-        ) : null}
-
-        <TextInput
-          label="Custom Domain"
-          value={customDomain}
-          onChangeText={setCustomDomain}
-          mode="outlined"
-          placeholder="portal.yourdomain.com"
-          autoCapitalize="none"
-          autoCorrect={false}
-          style={styles.input}
-          left={<TextInput.Affix text="https://" />}
-        />
-        <Text variant="bodySmall" style={styles.helpText}>
-          If you configure a custom domain, point its CNAME record to our servers to enable white-label access.
-        </Text>
-
-        <Button 
-          mode="contained" 
-          onPress={handleSave} 
-          loading={isLoading}
-          style={styles.saveBtn}
-          contentStyle={{ paddingVertical: 8 }}
-        >
+        <Button mode="contained" onPress={handleSave} loading={isLoading} style={styles.saveBtn} contentStyle={{ paddingVertical: 8 }}>
           Save Settings
         </Button>
       </View>
@@ -120,6 +111,7 @@ const styles = StyleSheet.create({
   },
   form: { padding: 16 },
   description: { marginBottom: 24, color: '#555' },
+  sectionTitle: { marginTop: 16, marginBottom: 12, fontWeight: 'bold', color: '#333' },
   input: { marginBottom: 16 },
   helpText: { marginTop: -8, marginBottom: 24, color: '#777' },
   previewContainer: {
