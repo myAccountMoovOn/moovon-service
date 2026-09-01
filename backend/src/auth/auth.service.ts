@@ -363,13 +363,16 @@ export class AuthService {
       const company = await this.companiesService.findOne(companyId);
       companyConfig = company;
       const customConfig = await this.companiesService.getSmtpConfig(companyId);
-      if (customConfig) {
+      // Only use company SMTP if it has all required fields configured
+      if (customConfig && customConfig.host && customConfig.user && customConfig.pass) {
         host = customConfig.host;
         port = customConfig.port;
         user = customConfig.user;
         pass = customConfig.pass;
         from = `"${customConfig.fromName || 'Admin'}" <${customConfig.fromEmail || user}>`;
         this.logger.log(`Using custom SMTP for company ${companyId}`);
+      } else {
+        this.logger.log(`Company ${companyId} has no complete SMTP config — falling back to default SMTP`);
       }
     }
 
