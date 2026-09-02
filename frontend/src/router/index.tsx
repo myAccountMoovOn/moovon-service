@@ -38,6 +38,8 @@ const NotFoundPage = () => (
   />
 );
 
+import Contact from '../pages/Contact/Contact';
+
 export const router = createBrowserRouter([
   {
     path: '/',
@@ -50,6 +52,10 @@ export const router = createBrowserRouter([
   {
     path: '/signup',
     element: <Signup />,
+  },
+  {
+    path: '/contact',
+    element: <Contact />,
   },
   {
     path: '/mock-payment',
