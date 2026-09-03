@@ -39,6 +39,7 @@ const NotFoundPage = () => (
 );
 
 import Contact from '../pages/Contact/Contact';
+import PublicServices from '../pages/Services/Services';
 
 export const router = createBrowserRouter([
   {
@@ -56,6 +57,10 @@ export const router = createBrowserRouter([
   {
     path: '/contact',
     element: <Contact />,
+  },
+  {
+    path: '/services',
+    element: <PublicServices />,
   },
   {
     path: '/mock-payment',
