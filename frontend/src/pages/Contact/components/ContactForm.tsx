@@ -7,7 +7,7 @@ export const ContactForm: React.FC = () => {
     name: '',
     email: '',
     company: '',
-    service: 'billing',
+    service: '',
     message: '',
   });
 
@@ -31,7 +31,6 @@ export const ContactForm: React.FC = () => {
 
     setIsSubmitting(true);
 
-    // Simulate async submission
     setTimeout(() => {
       setIsSubmitting(false);
       setIsSubmitted(true);
@@ -39,8 +38,25 @@ export const ContactForm: React.FC = () => {
   };
 
   return (
-    <div className="glass-panel" style={{ padding: '36px 32px', width: '100%', maxWidth: '440px' }}>
-      <h3 style={{ fontSize: '22px', fontWeight: 700, color: 'var(--navy-primary)', marginBottom: '24px' }}>
+    <div
+      className="glass-panel"
+      style={{
+        padding: '38px 34px',
+        width: '100%',
+        maxWidth: '460px',
+        background: 'rgba(255, 255, 255, 0.62)',
+        borderRadius: '28px',
+      }}
+    >
+      <h3
+        style={{
+          fontSize: '23px',
+          fontWeight: 700,
+          color: 'var(--navy-primary)',
+          marginBottom: '26px',
+          letterSpacing: '-0.02em',
+        }}
+      >
         Start a Conversation
       </h3>
 
@@ -62,12 +78,12 @@ export const ContactForm: React.FC = () => {
           </button>
         </div>
       ) : (
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           {errorMessage && (
             <div
               style={{
                 padding: '10px 14px',
-                borderRadius: '8px',
+                borderRadius: '10px',
                 background: 'rgba(239, 68, 68, 0.1)',
                 color: '#EF4444',
                 fontSize: '13px',
@@ -82,13 +98,13 @@ export const ContactForm: React.FC = () => {
             <label
               style={{
                 display: 'block',
-                fontSize: '13px',
+                fontSize: '13.5px',
                 fontWeight: 600,
                 color: 'var(--navy-primary)',
-                marginBottom: '6px',
+                marginBottom: '7px',
               }}
             >
-              Name <span style={{ color: '#EF4444' }}>*</span>
+              Name
             </label>
             <input
               type="text"
@@ -98,14 +114,15 @@ export const ContactForm: React.FC = () => {
               onChange={handleChange}
               style={{
                 width: '100%',
-                height: '42px',
-                padding: '0 14px',
-                borderRadius: '10px',
-                background: 'rgba(255, 255, 255, 0.65)',
-                border: '1px solid rgba(180, 200, 240, 0.5)',
+                height: '44px',
+                padding: '0 16px',
+                borderRadius: '12px',
+                background: 'rgba(244, 247, 254, 0.75)',
+                border: '1px solid rgba(215, 226, 248, 0.85)',
                 fontSize: '14px',
                 color: 'var(--navy-primary)',
                 outline: 'none',
+                transition: 'all 0.2s ease',
               }}
             />
           </div>
@@ -114,13 +131,13 @@ export const ContactForm: React.FC = () => {
             <label
               style={{
                 display: 'block',
-                fontSize: '13px',
+                fontSize: '13.5px',
                 fontWeight: 600,
                 color: 'var(--navy-primary)',
-                marginBottom: '6px',
+                marginBottom: '7px',
               }}
             >
-              Email <span style={{ color: '#EF4444' }}>*</span>
+              Email
             </label>
             <input
               type="email"
@@ -130,14 +147,15 @@ export const ContactForm: React.FC = () => {
               onChange={handleChange}
               style={{
                 width: '100%',
-                height: '42px',
-                padding: '0 14px',
-                borderRadius: '10px',
-                background: 'rgba(255, 255, 255, 0.65)',
-                border: '1px solid rgba(180, 200, 240, 0.5)',
+                height: '44px',
+                padding: '0 16px',
+                borderRadius: '12px',
+                background: 'rgba(244, 247, 254, 0.75)',
+                border: '1px solid rgba(215, 226, 248, 0.85)',
                 fontSize: '14px',
                 color: 'var(--navy-primary)',
                 outline: 'none',
+                transition: 'all 0.2s ease',
               }}
             />
           </div>
@@ -146,10 +164,10 @@ export const ContactForm: React.FC = () => {
             <label
               style={{
                 display: 'block',
-                fontSize: '13px',
+                fontSize: '13.5px',
                 fontWeight: 600,
                 color: 'var(--navy-primary)',
-                marginBottom: '6px',
+                marginBottom: '7px',
               }}
             >
               Company
@@ -162,14 +180,15 @@ export const ContactForm: React.FC = () => {
               onChange={handleChange}
               style={{
                 width: '100%',
-                height: '42px',
-                padding: '0 14px',
-                borderRadius: '10px',
-                background: 'rgba(255, 255, 255, 0.65)',
-                border: '1px solid rgba(180, 200, 240, 0.5)',
+                height: '44px',
+                padding: '0 16px',
+                borderRadius: '12px',
+                background: 'rgba(244, 247, 254, 0.75)',
+                border: '1px solid rgba(215, 226, 248, 0.85)',
                 fontSize: '14px',
                 color: 'var(--navy-primary)',
                 outline: 'none',
+                transition: 'all 0.2s ease',
               }}
             />
           </div>
@@ -178,10 +197,10 @@ export const ContactForm: React.FC = () => {
             <label
               style={{
                 display: 'block',
-                fontSize: '13px',
+                fontSize: '13.5px',
                 fontWeight: 600,
                 color: 'var(--navy-primary)',
-                marginBottom: '6px',
+                marginBottom: '7px',
               }}
             >
               What can we help with?
@@ -192,19 +211,22 @@ export const ContactForm: React.FC = () => {
               onChange={handleChange}
               style={{
                 width: '100%',
-                height: '42px',
-                padding: '0 14px',
-                borderRadius: '10px',
-                background: 'rgba(255, 255, 255, 0.65)',
-                border: '1px solid rgba(180, 200, 240, 0.5)',
+                height: '44px',
+                padding: '0 16px',
+                borderRadius: '12px',
+                background: 'rgba(244, 247, 254, 0.75)',
+                border: '1px solid rgba(215, 226, 248, 0.85)',
                 fontSize: '14px',
-                color: 'var(--navy-primary)',
+                color: formData.service ? 'var(--navy-primary)' : 'rgba(100, 116, 139, 0.75)',
                 outline: 'none',
                 cursor: 'pointer',
               }}
             >
+              <option value="" disabled>
+                Select a service
+              </option>
               {SERVICE_OPTIONS.map((opt) => (
-                <option key={opt.id} value={opt.id}>
+                <option key={opt.id} value={opt.id} style={{ color: 'var(--navy-primary)' }}>
                   {opt.label}
                 </option>
               ))}
@@ -215,13 +237,13 @@ export const ContactForm: React.FC = () => {
             <label
               style={{
                 display: 'block',
-                fontSize: '13px',
+                fontSize: '13.5px',
                 fontWeight: 600,
                 color: 'var(--navy-primary)',
-                marginBottom: '6px',
+                marginBottom: '7px',
               }}
             >
-              Message <span style={{ color: '#EF4444' }}>*</span>
+              Message
             </label>
             <textarea
               name="message"
@@ -231,10 +253,10 @@ export const ContactForm: React.FC = () => {
               onChange={handleChange}
               style={{
                 width: '100%',
-                padding: '10px 14px',
-                borderRadius: '10px',
-                background: 'rgba(255, 255, 255, 0.65)',
-                border: '1px solid rgba(180, 200, 240, 0.5)',
+                padding: '12px 16px',
+                borderRadius: '12px',
+                background: 'rgba(244, 247, 254, 0.75)',
+                border: '1px solid rgba(215, 226, 248, 0.85)',
                 fontSize: '14px',
                 color: 'var(--navy-primary)',
                 outline: 'none',
@@ -247,7 +269,7 @@ export const ContactForm: React.FC = () => {
             type="submit"
             disabled={isSubmitting}
             className="btn-gradient"
-            style={{ width: '100%', height: '46px', marginTop: '6px', fontSize: '15px' }}
+            style={{ width: '100%', height: '48px', marginTop: '6px', fontSize: '15px' }}
           >
             {isSubmitting ? (
               <span>Sending...</span>

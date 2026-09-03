@@ -29,14 +29,16 @@ export const HeroContact: React.FC = () => {
 
             {/* Divider + Subtext */}
             <div className="hero-subtext-divider" />
-            <div className="hero-subtext">We'd love to hear from you.</div>
+            <div className="hero-subtext" style={{ marginBottom: '24px' }}>
+              We'd love to hear from you.
+            </div>
 
             {/* 3D Glass Orb Signature Visual */}
             <HeroOrb />
           </div>
 
           {/* RIGHT CONTENT (~45% width) — Glass Form */}
-          <div style={{ flex: '1 1 420px', display: 'flex', justifyContent: 'flex-end' }}>
+          <div style={{ flex: '1 1 420px', display: 'flex', justifyContent: 'flex-end', paddingTop: '10px' }}>
             <ContactForm />
           </div>
 
