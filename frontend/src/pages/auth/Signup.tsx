@@ -3,7 +3,8 @@ import { Form, Input, Button, Card, Typography, Alert, Steps, Select, Row, Col }
 import { ShopOutlined, MailOutlined, LockOutlined, UserOutlined, PhoneOutlined, KeyOutlined } from '@ant-design/icons';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
-
+import { ContactNavbar } from '../Contact/components/ContactNavbar';
+import '../Contact/Contact.css';
 const { Title, Text } = Typography;
 const { Option } = Select;
 const API_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1';
@@ -98,8 +99,10 @@ const Signup: React.FC = () => {
   };
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', backgroundColor: 'var(--color-bg-sidebar)', padding: '40px 20px' }}>
-      <Card style={{ width: 500, maxWidth: '100%', borderRadius: 16 }} className="card-shadow">
+    <div style={{ minHeight: '100vh', backgroundColor: 'var(--color-bg-sidebar)', display: 'flex', flexDirection: 'column' }}>
+      <ContactNavbar />
+      <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '120px 20px 40px' }}>
+        <Card style={{ width: 500, maxWidth: '100%', borderRadius: 16 }} className="card-shadow">
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <Title level={3} className="text-primary" style={{ margin: 0 }}>Create an Account</Title>
           <Text type="secondary">Join Moovon today</Text>
@@ -218,6 +221,7 @@ const Signup: React.FC = () => {
           <Link to="/login">Sign in</Link>
         </div>
       </Card>
+      </div>
     </div>
   );
 };

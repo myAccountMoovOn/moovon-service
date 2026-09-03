@@ -1,36 +1,39 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { MoovonLogo } from '../../../assets/MoovonLogo';
 import { ArrowRight } from 'lucide-react';
 
 export const ContactNavbar: React.FC = () => {
+  const location = useLocation();
+  const path = location.pathname;
+
   return (
     <div className="floating-navbar-container">
       <nav className="floating-navbar">
         {/* Brand Logo */}
-        <Link to="/" style={{ textDecoration: 'none' }}>
+        <Link to="/login" style={{ textDecoration: 'none' }}>
           <MoovonLogo width={160} height={42} showSubtitle={true} />
         </Link>
 
         {/* Navigation Links */}
         <ul className="nav-links">
           <li>
-            <Link to="/" className="nav-link-item">
+            <Link to="/login" className={`nav-link-item ${path === '/' || path === '/login' ? 'active' : ''}`}>
               Home
             </Link>
           </li>
           <li>
-            <Link to="/about" className="nav-link-item">
+            <Link to="/about" className={`nav-link-item ${path === '/about' ? 'active' : ''}`}>
               About
             </Link>
           </li>
           <li>
-            <Link to="/services" className="nav-link-item">
+            <Link to="/services" className={`nav-link-item ${path === '/services' ? 'active' : ''}`}>
               Services
             </Link>
           </li>
           <li>
-            <Link to="/contact" className="nav-link-item active">
+            <Link to="/contact" className={`nav-link-item ${path === '/contact' ? 'active' : ''}`}>
               Contact
             </Link>
           </li>

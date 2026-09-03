@@ -23,6 +23,8 @@ import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import { useBranding } from '../../context/BrandingContext';
 import { supabase } from '../../api/supabaseClient';
+import { ContactNavbar } from '../Contact/components/ContactNavbar';
+import '../Contact/Contact.css';
 
 const { Title, Text } = Typography;
 const API_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1';
@@ -92,33 +94,10 @@ const Login: React.FC = () => {
   return (
     <div style={{ minHeight: '100vh', background: '#f4f6fc', display: 'flex', flexDirection: 'column' }}>
       {/* Navbar */}
-      <header style={{ 
-        padding: '16px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
-        backgroundColor: '#fff', maxWidth: 1400, margin: '24px auto', width: 'calc(100% - 48px)', 
-        borderRadius: 16, boxShadow: '0 4px 20px rgba(0,0,0,0.03)' 
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-           <img src={branding?.logo || "/moovonlogo.png"} alt="Moovon Logo" style={{ height: 48, objectFit: 'contain' }} />
-        </div>
-        
-        <div style={{ display: 'flex', gap: 40, alignItems: 'center' }}>
-          <div style={{ paddingBottom: 4, borderBottom: '2px solid #5c3cff' }}>
-             <Text strong style={{ color: '#5c3cff', cursor: 'pointer', fontSize: 15 }}>Home</Text>
-          </div>
-          <Text style={{ cursor: 'pointer', color: '#1a1a2e', fontSize: 15, fontWeight: 600 }}>About</Text>
-          <Text style={{ cursor: 'pointer', color: '#1a1a2e', fontSize: 15, fontWeight: 600 }}>Services</Text>
-          <Text style={{ cursor: 'pointer', color: '#1a1a2e', fontSize: 15, fontWeight: 600 }}>Contact</Text>
-        </div>
-        
-        <div>
-          <Button type="primary" style={{ backgroundColor: '#5c3cff', borderRadius: 8, height: 44, padding: '0 24px', fontWeight: 600, border: 'none', background: 'linear-gradient(90deg, #5c3cff 0%, #8a2be2 100%)' }}>
-            LET'S TALK <ArrowRightOutlined />
-          </Button>
-        </div>
-      </header>
+      <ContactNavbar />
 
       {/* Main Content */}
-      <div style={{ display: 'flex', gap: 32, maxWidth: 1400, margin: '0 auto', width: '100%', padding: '0 24px 48px', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 32, maxWidth: 1400, margin: '100px auto 0', width: '100%', padding: '0 24px 48px', flexWrap: 'wrap' }}>
         
         {/* Left Side (Hero + Cards + Banner) */}
         <div style={{ flex: 1, minWidth: 600 }}>
