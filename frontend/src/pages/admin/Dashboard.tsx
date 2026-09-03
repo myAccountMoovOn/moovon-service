@@ -204,7 +204,7 @@ const AdminDashboard: React.FC = () => {
                 <Flex justify="space-between" align="center">
                     <Space direction="vertical" size={0}>
                         <Text strong style={{ fontSize: '14px' }}>{item.subscription?.customer?.name}</Text>
-                        <Text type="secondary" style={{ fontSize: '11px' }}>{item.subscription?.service?.name}</Text>
+                        <Text type="secondary" style={{ fontSize: '11px' }}>{item.subscription?.service?.name || item.subscription?.package?.name || 'N/A'}</Text>
                     </Space>
                     <Text strong style={{ fontSize: '16px', color: 'var(--color-primary)' }}>₹{(item.amount || 0).toLocaleString()}</Text>
                 </Flex>
@@ -494,7 +494,7 @@ const AdminDashboard: React.FC = () => {
                      <>
                         <Flex vertical gap={4}>
                             <Text type="secondary" style={{ fontSize: '10px', textTransform: 'uppercase' }}>Subscription Audit</Text>
-                            <Title level={4} style={{ margin: 0 }}>{selectedItem.service?.name}</Title>
+                            <Title level={4} style={{ margin: 0 }}>{selectedItem.service?.name || selectedItem.package?.name || 'N/A'}</Title>
                             <Text strong color="var(--color-primary)">{selectedItem.customer?.name}</Text>
                         </Flex>
                         

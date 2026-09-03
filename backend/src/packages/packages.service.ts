@@ -31,7 +31,7 @@ export class PackagesService {
       .orderBy('pkg.createdAt', 'DESC');
 
     // Multi-tenancy: filter by companyId for non-admin users
-    if (user && user.role !== 'admin' && user.companyId) {
+    if (user && user.role !== 'admin' && user.role !== 'super_admin' && user.companyId) {
       query.andWhere('pkg.company_id = :companyId', { companyId: user.companyId });
     }
 

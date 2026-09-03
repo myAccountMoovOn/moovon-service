@@ -138,6 +138,8 @@ export interface Subscription {
   customer?: Customer;
   serviceId: string;
   service?: Service;
+  packageId?: string;
+  package?: Package;
   startDate: string;
   endDate: string;
   amount: number;

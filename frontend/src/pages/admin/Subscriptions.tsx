@@ -222,9 +222,9 @@ const Subscriptions: React.FC = () => {
       ),
     },
     {
-      title: 'Service',
-      dataIndex: 'service',
-      render: (s: any) => s?.name || '-',
+      title: 'Product / Service',
+      key: 'service',
+      render: (_: any, record: Subscription) => record.service?.name || record.package?.name || '-',
     },
     {
       title: 'Period',
@@ -447,8 +447,8 @@ const Subscriptions: React.FC = () => {
 
                 <Flex justify="space-between" align="center">
                   <Flex vertical gap={2}>
-                    <Text type="secondary" style={{ fontSize: '11px' }}><RocketOutlined /> SERVICE</Text>
-                    <Text strong>{item.service?.name}</Text>
+                    <Text type="secondary" style={{ fontSize: '11px' }}><RocketOutlined /> PRODUCT / SERVICE</Text>
+                    <Text strong>{item.service?.name || item.package?.name || '-'}</Text>
                   </Flex>
                   <Flex vertical gap={2} style={{ textAlign: 'right' }}>
                     <Text type="secondary" style={{ fontSize: '11px' }}><DollarOutlined /> AMOUNT</Text>

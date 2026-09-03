@@ -33,7 +33,7 @@ export class ServicesMasterService {
     const query = this.serviceRepo.createQueryBuilder('service')
       .leftJoinAndSelect('service.categoryRef', 'categoryRef');
 
-    if (user && user.role !== 'admin' && user.companyId) {
+    if (user && user.role !== 'admin' && user.role !== 'super_admin' && user.companyId) {
       query.andWhere('service.company_id = :companyId', { companyId: user.companyId });
     }
 
