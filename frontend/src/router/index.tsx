@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import Login from '../pages/auth/Login';
 import Signup from '../pages/auth/Signup';
+import About from '../pages/About';
 import { ProtectedRoute } from '../components/ProtectedRoute';
 import AdminLayout from '../layouts/AdminLayout';
 import CustomerLayout from '../layouts/CustomerLayout';
@@ -54,6 +55,10 @@ export const router = createBrowserRouter([
   {
     path: '/mock-payment',
     element: <MockPayment />,
+  },
+  {
+    path: '/about',
+    element: <About />,
   },
   {
     path: '/admin',
