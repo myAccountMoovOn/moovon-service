@@ -1,10 +1,12 @@
-﻿import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Shield, Zap, Lightbulb, Heart,
   Target, Eye, CheckCircle, ArrowRight,
   Users, Award, Globe, TrendingUp, Star,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { ContactNavbar } from './Contact/components/ContactNavbar';
+import './Contact/Contact.css';
 
 /* ─────────────────────────────────────────────────────────────
    MOOVON About Page  ·  White & Blue Professional Theme
@@ -82,6 +84,7 @@ const About: React.FC = () => {
 
   return (
     <div style={{ fontFamily: "'Roboto', sans-serif", color: '#0f172a', background: '#fff', overflowX: 'hidden' }}>
+      <ContactNavbar />
 
       {/* ── 1. HERO ──────────────────────────────────────────────── */}
       <section style={{ background: 'linear-gradient(160deg, #f8faff 0%, #eef4ff 40%, #fff 100%)', padding: '100px 24px 80px', position: 'relative', overflow: 'hidden' }}>

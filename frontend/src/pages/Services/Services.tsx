@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import './Services.css';
-import { ServicesNavbar } from './components/ServicesNavbar';
+import { ContactNavbar } from '../Contact/components/ContactNavbar';
+import '../Contact/Contact.css';
 import { HeroServices } from './components/HeroServices';
 import { CoreModules } from './components/CoreModules';
 import { ConnectedBusinessFlow } from './components/ConnectedBusinessFlow';
@@ -15,7 +16,7 @@ const Services: React.FC = () => {
   return (
     <div className="services-page-wrapper" id="top">
       {/* Floating Glass Navbar */}
-      <ServicesNavbar />
+      <ContactNavbar />
 
       {/* SECTION 01: Hero / Business Ecosystem */}
       <HeroServices onSelectModule={(mod) => setSelectedModule(mod)} />
