@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Form, Input, Button, Card, Typography, Alert, Divider, Row, Col } from 'antd';
+import { Form, Input, Button, Card, Typography, Alert, Divider, Row, Col, Grid } from 'antd';
 import { 
   MailOutlined, 
   LockOutlined, 
@@ -30,6 +30,7 @@ const { Title, Text } = Typography;
 const API_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1';
 
 const Login: React.FC = () => {
+  const screens = Grid.useBreakpoint();
   const [step, setStep] = useState(0);
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
@@ -244,11 +245,13 @@ const Login: React.FC = () => {
                   </Col>
                 </Row>
               </div>
-              <div style={{ display: 'none', '@media (minWidth: 992px)': { display: 'block' } }}>
-                 <div style={{ width: 100, height: 100, backgroundColor: '#f0edff', borderRadius: 50, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <FileDoneOutlined style={{ fontSize: 48, color: '#5c3cff' }} />
-                 </div>
-              </div>
+              {screens.lg && (
+                <div>
+                   <div style={{ width: 100, height: 100, backgroundColor: '#f0edff', borderRadius: 50, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <FileDoneOutlined style={{ fontSize: 48, color: '#5c3cff' }} />
+                   </div>
+                </div>
+              )}
             </div>
           </Card>
         </div>
