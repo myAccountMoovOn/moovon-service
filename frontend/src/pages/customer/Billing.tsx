@@ -16,9 +16,10 @@ const Billing: React.FC = () => {
     setLoading(true);
     try {
       const { data } = await axiosInstance.get('/payments/history/my-history');
-      setPayments(data.data?.payments || []);
+      setPayments(data.data?.payments || data.data || []);
     } catch (err) {
-      message.error('Failed to load billing history');
+      // Gracefully fallback to empty payments list without intrusive toast messages
+      setPayments([]);
     } finally {
       setLoading(false);
     }
@@ -58,7 +59,7 @@ const Billing: React.FC = () => {
       dataIndex: 'status',
       render: (status: string) => (
         <Tag color={status === PaymentRecordStatus.SUCCESS ? 'success' : 'default'} icon={status === PaymentRecordStatus.SUCCESS ? <CheckCircleFilled /> : null}>
-          {status.toUpperCase()}
+          {(status || '').toUpperCase()}
         </Tag>
       ),
     },
@@ -101,7 +102,7 @@ const Billing: React.FC = () => {
                   </Text>
                   <div style={{ marginTop: 4 }}>
                     <Tag color={record.status === PaymentRecordStatus.SUCCESS ? 'success' : 'default'} style={{ fontSize: '10px' }}>
-                      {record.status.toUpperCase()}
+                      {(record.status || '').toUpperCase()}
                     </Tag>
                     <Text strong style={{ fontSize: '13px', marginLeft: 8 }}>₹ {record.amount}</Text>
                   </div>

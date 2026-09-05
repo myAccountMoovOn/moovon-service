@@ -7,6 +7,7 @@ interface AuthContextType {
   user: User | null;
   role: 'admin' | 'customer' | null;
   isLoading: boolean;
+  setFallbackUser: (user: any, role: 'admin' | 'customer') => void;
   signOut: () => Promise<void>;
 }
 
@@ -15,6 +16,7 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   role: null,
   isLoading: true,
+  setFallbackUser: () => {},
   signOut: async () => {},
 });
 
@@ -28,10 +30,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     let mounted = true;
 
     async function initializeAuth() {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (mounted) {
-        updateState(session);
-        setIsLoading(false);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (mounted) {
+          updateState(session);
+        }
+      } catch (e) {
+        if (mounted) {
+          updateState(null);
+        }
+      } finally {
+        if (mounted) {
+          setIsLoading(false);
+        }
       }
     }
 
@@ -51,31 +62,73 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateState = (currentSession: Session | null) => {
     setSession(currentSession);
-    setUser(currentSession?.user ?? null);
     
     if (currentSession?.user) {
-      // user_metadata is always an object {}, so || won't fall back — check both explicitly
+      setUser(currentSession.user);
       const rawRole =
         currentSession.user.user_metadata?.role ||
         currentSession.user.app_metadata?.role ||
         'customer';
-      // Map provider & super_admin to 'admin' for web routing
-      const mappedRole = (rawRole === 'provider' || rawRole === 'super_admin' || rawRole === 'admin')
+      const mappedRole = (rawRole === 'provider' || rawRole === 'super_admin' || rawRole === 'admin' || rawRole === 'reseller')
         ? 'admin'
         : 'customer';
       setRole(mappedRole);
+      localStorage.setItem('moovon_user', JSON.stringify(currentSession.user));
+      localStorage.setItem('moovon_role', mappedRole);
     } else {
-      setRole(null);
+      // Check fallback storage for local development environments
+      const storedUser = localStorage.getItem('moovon_user');
+      const storedRole = localStorage.getItem('moovon_role') as 'admin' | 'customer' | null;
+      if (storedUser && storedRole) {
+        try {
+          setUser(JSON.parse(storedUser));
+          setRole(storedRole);
+        } catch {
+          setUser(null);
+          setRole(null);
+        }
+      } else {
+        setUser(null);
+        setRole(null);
+      }
+    }
+  };
+
+  const setFallbackUser = (userData: any, userRole: 'admin' | 'customer', userSession?: any) => {
+    const storedUserStr = localStorage.getItem('moovon_user');
+    let mergedUser = userData;
+    if (storedUserStr) {
+      try {
+        const existing = JSON.parse(storedUserStr);
+        mergedUser = { ...existing, ...userData };
+      } catch (e) {}
+    }
+
+    setUser(mergedUser);
+    setRole(userRole);
+    localStorage.setItem('moovon_user', JSON.stringify(mergedUser));
+    localStorage.setItem('moovon_role', userRole);
+    if (userSession) {
+      localStorage.setItem('moovon_session', JSON.stringify(userSession));
     }
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
-    // Our custom nestjs endpoint could also be called, but supabase client handles token clearing
+    localStorage.removeItem('moovon_user');
+    localStorage.removeItem('moovon_role');
+    localStorage.removeItem('moovon_session');
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.warn('Supabase signout warning:', e);
+    }
+    setSession(null);
+    setUser(null);
+    setRole(null);
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, role, isLoading, signOut }}>
+    <AuthContext.Provider value={{ session, user, role, isLoading, setFallbackUser, signOut }}>
       {children}
     </AuthContext.Provider>
   );

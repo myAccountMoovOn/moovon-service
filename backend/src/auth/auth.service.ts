@@ -108,12 +108,14 @@ export class AuthService {
     email: string,
     password: string,
     role: UserRole,
+    name?: string,
+    phone?: string,
   ): Promise<string> {
     const { data, error } = await this.supabaseAdmin.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
-      user_metadata: { role },
+      user_metadata: { role, name, phone, full_name: name },
       app_metadata: { role },
     });
 
@@ -177,8 +179,11 @@ export class AuthService {
   }
 
   async registerCustomerStep1(dto: import('./dto/auth.dto').RegisterCustomerDto) {
-    // 1. Validate company code first so we don't send OTP if it's invalid
-    await this.companiesService.findByCode(dto.companyCode);
+    let companyId: string | undefined = undefined;
+    if (dto.companyCode) {
+      const company = await this.companiesService.findByCode(dto.companyCode);
+      companyId = company?.id;
+    }
 
     // 2. Generate a custom 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -189,8 +194,7 @@ export class AuthService {
 
     // 4. Send the OTP
     try {
-      const company = await this.companiesService.findByCode(dto.companyCode);
-      await this.sendCustomEmailOtp(dto.email, otp, company.id);
+      await this.sendCustomEmailOtp(dto.email, otp, companyId);
     } catch (e: any) {
       this.signupCache.delete(dto.email);
       throw new InternalServerErrorException(e.message);
@@ -243,6 +247,10 @@ export class AuthService {
     }
 
     const session = data.session;
+    const customer = await this.customerRepository.findOne({
+      where: { userId: session.user.id },
+    });
+
     return {
       message: result.message,
       companyCode: result.companyCode,
@@ -252,6 +260,11 @@ export class AuthService {
         id: session.user.id,
         email: session.user.email,
         role: type === 'reseller' ? UserRole.RESELLER : (type === 'provider' ? UserRole.PROVIDER : UserRole.CUSTOMER),
+        name: customer?.name || dto.name || '',
+        phone: customer?.phone || dto.phone || '',
+        companyName: customer?.companyName || '',
+        address: customer?.address || '',
+        gstNumber: customer?.gstNumber || '',
       },
     };
   }
@@ -288,24 +301,32 @@ export class AuthService {
   }
 
   async registerCustomer(dto: import('./dto/auth.dto').RegisterCustomerDto) {
-    const company = await this.companiesService.findByCode(dto.companyCode);
+    let companyId: string | null = null;
+    let companyName = '';
+    if (dto.companyCode) {
+      const company = await this.companiesService.findByCode(dto.companyCode);
+      companyId = company?.id || null;
+      companyName = company?.name || '';
+    }
 
-    const userId = await this.createSupabaseUser(dto.email, dto.password, UserRole.CUSTOMER);
+    const userId = await this.createSupabaseUser(dto.email, dto.password, UserRole.CUSTOMER, dto.name, dto.phone);
     
-    // Update profile with companyId
-    await this.profileRepository.update({ id: userId }, { companyId: company.id });
+    // Update profile with companyId if present
+    if (companyId) {
+      await this.profileRepository.update({ id: userId }, { companyId });
+    }
 
-    // Create customer record
+    // Create customer record with name, phone, email
     const customer = this.customerRepository.create({
       userId,
-      companyId: company.id,
+      companyId: companyId || undefined,
       name: dto.name,
       phone: dto.phone,
       email: dto.email,
     });
     await this.customerRepository.save(customer);
 
-    return { message: 'Customer registered successfully', companyName: company.name };
+    return { message: 'Customer registered successfully', companyName };
   }
 
   async deleteSupabaseUser(userId: string): Promise<void> {
@@ -319,23 +340,81 @@ export class AuthService {
     const profile = await this.profileRepository.findOne({
       where: { id: userId },
     });
-    const customer = await this.customerRepository.findOne({
+    let customer = await this.customerRepository.findOne({
       where: { userId },
     });
+
+    if (!customer) {
+      try {
+        const sbUser = await this.supabaseAdmin.auth.admin.getUserById(userId);
+        const email = sbUser.data?.user?.email;
+        if (email) {
+          customer = await this.customerRepository.findOne({
+            where: { email },
+          });
+          if (customer && !customer.userId) {
+            customer.userId = userId;
+            await this.customerRepository.save(customer);
+          }
+        }
+      } catch (e) {}
+    }
+
     return { profile, customer };
   }
 
   async updateProfile(userId: string, data: Partial<Customer>) {
-    const customer = await this.customerRepository.findOne({
+    let customer = await this.customerRepository.findOne({
       where: { userId },
     });
+
     if (!customer) {
-      throw new Error('Customer record not found for this user');
+      try {
+        const sbUser = await this.supabaseAdmin.auth.admin.getUserById(userId);
+        const email = sbUser.data?.user?.email;
+        if (email) {
+          customer = await this.customerRepository.findOne({
+            where: { email },
+          });
+        }
+
+        if (!customer && email) {
+          customer = this.customerRepository.create({
+            userId,
+            email,
+            name: data.name || sbUser.data?.user?.user_metadata?.name || 'Customer',
+            phone: data.phone || sbUser.data?.user?.user_metadata?.phone || '',
+          });
+        }
+      } catch (e) {}
     }
-    // Only allow updating certain fields for safety
+
+    if (!customer) {
+      throw new InternalServerErrorException('Customer record could not be found or initialized');
+    }
+
+    customer.userId = userId;
+
     const { name, phone, address, companyName, gstNumber } = data;
-    Object.assign(customer, { name, phone, address, companyName, gstNumber });
-    return this.customerRepository.save(customer);
+    if (name !== undefined) customer.name = name;
+    if (phone !== undefined) customer.phone = phone;
+    if (address !== undefined) customer.address = address;
+    if (companyName !== undefined) customer.companyName = companyName;
+    if (gstNumber !== undefined) customer.gstNumber = gstNumber;
+
+    const saved = await this.customerRepository.save(customer);
+
+    if (name || phone) {
+      try {
+        await this.supabaseAdmin.auth.admin.updateUserById(userId, {
+          user_metadata: { name, phone, full_name: name },
+        });
+      } catch (e) {
+        this.logger.warn(`Failed to sync user_metadata in Supabase: ${e}`);
+      }
+    }
+
+    return saved;
   }
 
   async changePassword(userId: string, newPassword: string) {
@@ -439,12 +518,21 @@ export class AuthService {
       where: { id: session.user.id },
     });
 
+    const customer = await this.customerRepository.findOne({
+      where: { userId: session.user.id },
+    });
+
     return {
       session,
       user: {
         id: session.user.id,
         email: session.user.email,
         role: profile?.role ?? UserRole.CUSTOMER,
+        name: customer?.name || session.user.user_metadata?.name || session.user.user_metadata?.full_name || '',
+        phone: customer?.phone || session.user.user_metadata?.phone || '',
+        companyName: customer?.companyName || '',
+        address: customer?.address || '',
+        gstNumber: customer?.gstNumber || '',
       },
     };
   }

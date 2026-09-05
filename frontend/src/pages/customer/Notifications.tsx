@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Tag, Typography, Card, message, Empty, Space, Grid, List } from 'antd';
+import { Table, Tag, Typography, Card, Empty, Space, Grid, List } from 'antd';
 import { NotificationOutlined, MailOutlined, MessageOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import axiosInstance from '../../api/axiosInstance';
@@ -14,9 +14,10 @@ const CustomerNotifications: React.FC = () => {
     setLoading(true);
     try {
       const { data } = await axiosInstance.get('/notifications/my-logs');
-      setLogs(data.data?.data || []); // Paginated response contains data.data.data
+      setLogs(data.data?.data || data.data || []);
     } catch (err) {
-      message.error('Failed to load notification history');
+      // Gracefully fallback to empty logs without error toasts when empty/unavailable
+      setLogs([]);
     } finally {
       setLoading(false);
     }
@@ -38,7 +39,7 @@ const CustomerNotifications: React.FC = () => {
       render: (channel: string) => (
         <Space>
           {channel === 'email' ? <MailOutlined /> : <MessageOutlined />}
-          <Text>{channel.toUpperCase()}</Text>
+          <Text>{(channel || '').toUpperCase()}</Text>
         </Space>
       ),
     },
@@ -46,7 +47,7 @@ const CustomerNotifications: React.FC = () => {
       title: 'Type',
       dataIndex: 'templateType',
       render: (type: string) => (
-        <Text strong>{type.replace(/_/g, ' ').toUpperCase()}</Text>
+        <Text strong>{(type || '').replace(/_/g, ' ').toUpperCase()}</Text>
       ),
     },
     {
@@ -54,7 +55,7 @@ const CustomerNotifications: React.FC = () => {
       dataIndex: 'status',
       render: (status: string) => (
         <Tag color={status === 'sent' ? 'success' : status === 'failed' ? 'error' : 'warning'}>
-          {status.toUpperCase()}
+          {(status || '').toUpperCase()}
         </Tag>
       ),
     },
@@ -79,15 +80,15 @@ const CustomerNotifications: React.FC = () => {
               <List.Item style={{ padding: '16px', borderBottom: '1px solid #f0f0f0' }}>
                 <div style={{ width: '100%' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <Text strong>{item.templateType.replace(/_/g, ' ').toUpperCase()}</Text>
+                    <Text strong>{(item.templateType || '').replace(/_/g, ' ').toUpperCase()}</Text>
                     <Tag color={item.status === 'sent' ? 'success' : item.status === 'failed' ? 'error' : 'warning'}>
-                      {item.status.toUpperCase()}
+                      {(item.status || '').toUpperCase()}
                     </Tag>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <Space size={4}>
                       {item.channel === 'email' ? <MailOutlined /> : <MessageOutlined />}
-                      <Text type="secondary">{item.channel.toUpperCase()}</Text>
+                      <Text type="secondary">{(item.channel || '').toUpperCase()}</Text>
                     </Space>
                     <Text type="secondary" style={{ fontSize: '12px' }}>
                       {item.sentAt ? dayjs(item.sentAt).format('MMM D, hh:mm A') : 'Pending'}
