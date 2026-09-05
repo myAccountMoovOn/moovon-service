@@ -3,7 +3,7 @@ import { View, StyleSheet, ScrollView, Alert, KeyboardAvoidingView, Platform } f
 import { Text, useTheme, TextInput, Button, IconButton, Switch, SegmentedButtons, Surface } from 'react-native-paper';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTemplatesStore } from '../../store/templatesStore';
-import { NotificationChannel, NotificationTemplateType } from '../../store/templatesStore'; // need to map these or type string
+
 
 export default function TemplateEditScreen() {
   const theme = useTheme();

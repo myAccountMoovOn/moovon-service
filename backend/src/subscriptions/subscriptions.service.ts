@@ -138,14 +138,15 @@ export class SubscriptionsService {
     const query = this.subscriptionRepo.createQueryBuilder('sub')
       .leftJoinAndSelect('sub.customer', 'customer')
       .leftJoinAndSelect('sub.service', 'service')
+      .leftJoinAndSelect('sub.package', 'package')
       .orderBy('sub.createdAt', 'DESC');
 
     // Multi-tenancy: filter by companyId for non-admin users
-    if (user && user.role !== 'admin' && user.companyId) {
+    if (user && user.role !== 'admin' && user.role !== 'super_admin' && user.companyId) {
       query.andWhere('sub.company_id = :companyId', { companyId: user.companyId });
     }
 
-    if (user && user.role !== 'admin') {
+    if (user && user.role !== 'admin' && user.role !== 'super_admin') {
       if (user.role === 'provider' && user.companyId) {
         query.andWhere('customer.company_id = :companyId', { companyId: user.companyId });
       } else if (user.role === 'customer') {
@@ -208,6 +209,7 @@ export class SubscriptionsService {
     return this.subscriptionRepo.createQueryBuilder('sub')
       .leftJoinAndSelect('sub.customer', 'customer')
       .leftJoinAndSelect('sub.service', 'service')
+      .leftJoinAndSelect('sub.package', 'package')
       .where('sub.endDate >= :today AND sub.endDate <= :targetDateString', { today, targetDateString })
       .orderBy('sub.endDate', 'ASC')
       .getMany();
@@ -216,7 +218,7 @@ export class SubscriptionsService {
   async findOne(id: string) {
     const sub = await this.subscriptionRepo.findOne({
       where: { id },
-      relations: ['customer', 'service', 'payments'],
+      relations: ['customer', 'service', 'package', 'payments'],
     });
 
     if (!sub) {

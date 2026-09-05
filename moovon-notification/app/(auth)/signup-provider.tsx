@@ -13,6 +13,7 @@ export default function SignupProviderScreen() {
     phone: '',
     email: '',
     password: '',
+    resellerCode: '',
   });
   const [otp, setOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
@@ -79,6 +80,15 @@ export default function SignupProviderScreen() {
                 mode="outlined"
                 value={formData.companyName}
                 onChangeText={(v) => updateField('companyName', v)}
+                style={styles.input}
+              />
+
+              <TextInput
+                label="Reseller Code (Optional)"
+                mode="outlined"
+                value={formData.resellerCode}
+                onChangeText={(v) => updateField('resellerCode', v)}
+                autoCapitalize="characters"
                 style={styles.input}
               />
 

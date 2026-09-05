@@ -5,8 +5,9 @@ import { Slot, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import 'react-native-reanimated';
-import { theme } from '../constants/theme';
+import { theme as defaultTheme } from '../constants/theme';
 import { useAuthStore } from '../store/authStore';
+import { useBrandingStore } from '../store/brandingStore';
 
 export const unstable_settings = {
   anchor: '(auth)',
@@ -19,6 +20,7 @@ export default function RootLayout() {
   const router = useRouter();
   const segments = useSegments();
   const user = useAuthStore((state) => state.user);
+  const { branding, fetchBranding } = useBrandingStore();
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
@@ -48,6 +50,11 @@ export default function RootLayout() {
       router.replace('/(auth)/login' as any);
     }
 
+    // Fetch branding if user is signed in
+    if (user && !branding) {
+      fetchBranding();
+    }
+
     // Now that routing is settled, hide the splash screen
     setTimeout(() => {
       SplashScreen.hideAsync();
@@ -55,8 +62,17 @@ export default function RootLayout() {
 
   }, [user, segments, isReady]);
 
+  // Dynamically apply primary color from branding
+  const dynamicTheme = {
+    ...defaultTheme,
+    colors: {
+      ...defaultTheme.colors,
+      primary: branding?.primaryColor || defaultTheme.colors.primary,
+    },
+  };
+
   return (
-    <PaperProvider theme={theme}>
+    <PaperProvider theme={dynamicTheme}>
       <ThemeProvider value={DefaultTheme}>
         <Slot />
         <StatusBar style="auto" />

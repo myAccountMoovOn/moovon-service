@@ -12,6 +12,7 @@ import { Customer } from '../../customers/entities/customer.entity';
 import { Service } from '../../services-master/entities/service.entity';
 import { Payment } from '../../payments/entities/payment.entity';
 import { NotificationLog } from '../../notifications/entities/notification-log.entity';
+import { Package } from '../../packages/entities/package.entity';
 
 export enum PaymentStatus {
   PAID = 'paid',
@@ -70,6 +71,10 @@ export class Subscription {
 
   @Column({ name: 'package_id', type: 'uuid', nullable: true })
   packageId: string | null;
+
+  @ManyToOne(() => Package, { onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'package_id' })
+  package?: Package;
 
   @Column({ name: 'coupon_id', type: 'uuid', nullable: true })
   couponId: string | null;

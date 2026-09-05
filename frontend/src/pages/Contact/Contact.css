@@ -1,0 +1,582 @@
+/* ============================================================
+   MOOVON SERVICES & SOLUTIONS — CONTACT US DESIGN SYSTEM
+   Theme: Luxurious White + Electric Blue + Violet Purple Glassmorphism
+   ============================================================ */
+
+:root {
+  --bg-primary: #F6F9FF;
+  --navy-primary: #0F172A;
+  --navy-soft: #182343;
+  --text-secondary: #475569;
+
+  --blue-primary: #155EEF;
+  --blue-electric: #2563EB;
+  --blue-bright: #38BDF8;
+
+  --purple-primary: #7C3AED;
+  --purple-bright: #8B5CF6;
+  --purple-magenta: #C084FC;
+  --purple-deep: #5B21B6;
+
+  --white: #FFFFFF;
+
+  --glass-bg: rgba(255, 255, 255, 0.58);
+  --glass-bg-hover: rgba(255, 255, 255, 0.75);
+  --glass-border: rgba(255, 255, 255, 0.92);
+  --glass-border-blue: rgba(37, 99, 235, 0.35);
+
+  --gradient-brand: linear-gradient(100deg, #155EEF 0%, #2563EB 40%, #7C3AED 75%, #8B5CF6 100%);
+  /* High contrast, ultra-readable blue to deep purple gradient */
+  --gradient-text: linear-gradient(100deg, #1D4ED8 0%, #1E40AF 30%, #5B21B6 70%, #6D28D9 100%);
+  --gradient-btn: linear-gradient(100deg, #155EEF 0%, #3B82F6 45%, #7C3AED 85%, #8B5CF6 100%);
+  --gradient-dark-cta: linear-gradient(135deg, #082B9A 0%, #163CC7 45%, #5B21B6 100%);
+}
+
+.contact-page-wrapper {
+  min-height: 100vh;
+  background-color: var(--bg-primary);
+  background-image:
+    radial-gradient(circle at 12% 18%, rgba(56, 189, 248, 0.14), transparent 40%),
+    radial-gradient(circle at 85% 25%, rgba(139, 92, 246, 0.12), transparent 38%),
+    radial-gradient(circle at 50% 70%, rgba(37, 99, 235, 0.08), transparent 45%);
+  color: var(--navy-primary);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Base Glassmorphism Panel */
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(32px) saturate(180%);
+  -webkit-backdrop-filter: blur(32px) saturate(180%);
+  border: 1.5px solid var(--glass-border);
+  border-radius: 28px;
+  box-shadow:
+    0 30px 80px rgba(37, 99, 235, 0.12),
+    0 10px 25px rgba(124, 58, 237, 0.08),
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.95),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.35);
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.75), transparent 45%);
+  pointer-events: none;
+}
+
+/* Gradient Text Helper */
+.text-gradient {
+  background: var(--gradient-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  display: inline-block;
+}
+
+/* Buttons */
+.btn-gradient {
+  background: var(--gradient-btn);
+  color: var(--white);
+  font-weight: 600;
+  border-radius: 14px;
+  border: none;
+  padding: 13px 30px;
+  box-shadow: 0 12px 35px rgba(37, 99, 235, 0.32);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.btn-gradient:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 45px rgba(124, 58, 237, 0.42);
+}
+
+.btn-gradient .arrow-icon {
+  transition: transform 0.3s ease;
+}
+
+.btn-gradient:hover .arrow-icon {
+  transform: translateX(4px);
+}
+
+/* Navbar */
+.floating-navbar-container {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 92%;
+  max-width: 1450px;
+  z-index: 1000;
+}
+
+.floating-navbar {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  border: 1.5px solid rgba(255, 255, 255, 0.9);
+  border-radius: 22px;
+  height: 68px;
+  padding: 0 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow:
+    0 12px 35px rgba(37, 99, 235, 0.10),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 36px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.nav-link-item {
+  color: var(--navy-primary);
+  font-weight: 500;
+  font-size: 15px;
+  text-decoration: none;
+  position: relative;
+  transition: color 0.2s ease;
+}
+
+.nav-link-item:hover {
+  color: var(--blue-electric);
+}
+
+.nav-link-item.active {
+  color: var(--blue-primary);
+  font-weight: 600;
+}
+
+.nav-link-item.active::after {
+  content: "";
+  position: absolute;
+  bottom: -6px;
+  left: 0;
+  width: 100%;
+  height: 2.5px;
+  background: var(--gradient-brand);
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
+}
+
+/* 3D Glass Orbs (Hyper Realistic) */
+.hero-orb-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 280px;
+  margin: 15px 0;
+}
+
+.glass-orb-sphere {
+  width: 250px;
+  height: 250px;
+  border-radius: 50%;
+  background:
+    radial-gradient(
+      circle at 30% 25%,
+      rgba(255, 255, 255, 1) 0%,
+      rgba(255, 255, 255, 0.65) 30%,
+      rgba(224, 242, 254, 0.4) 60%,
+      rgba(243, 232, 255, 0.3) 85%,
+      rgba(192, 132, 252, 0.2) 100%
+    );
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1.5px solid rgba(255, 255, 255, 0.95);
+  box-shadow:
+    0 30px 80px rgba(37, 99, 235, 0.22),
+    0 10px 30px rgba(124, 58, 237, 0.15),
+    inset 0 0 40px rgba(255, 255, 255, 0.9),
+    inset -12px -12px 30px rgba(139, 92, 246, 0.2),
+    inset 10px 10px 20px rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 2;
+  animation: floatOrb 7s ease-in-out infinite;
+}
+
+/* Crescent Specular Highlight (Glass Lens Flare) */
+.glass-orb-sphere::before {
+  content: "";
+  position: absolute;
+  top: 18px;
+  left: 28px;
+  width: 110px;
+  height: 55px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 75%);
+  transform: rotate(-30deg);
+  pointer-events: none;
+}
+
+@keyframes floatOrb {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-10px) rotate(1deg); }
+}
+
+.orb-shadow {
+  position: absolute;
+  bottom: -18px;
+  width: 180px;
+  height: 20px;
+  background: radial-gradient(ellipse at center, rgba(37, 99, 235, 0.24), transparent 70%);
+  filter: blur(12px);
+  border-radius: 50%;
+  z-index: 1;
+}
+
+/* Orbital SVG Overlay */
+.orbital-svg-layer {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* Sections Layout */
+.section-wrapper {
+  padding: 120px 0 80px;
+  position: relative;
+}
+
+/* Elevated Hero Padding to clear floating navbar completely */
+.section-hero {
+  padding-top: 175px;
+  padding-bottom: 80px;
+}
+
+.section-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  color: #6366F1;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+}
+
+.section-label .num {
+  color: var(--blue-primary);
+  font-weight: 800;
+}
+
+.hero-headline {
+  font-size: clamp(44px, 4.8vw, 68px);
+  font-weight: 700;
+  line-height: 1.02;
+  letter-spacing: -0.03em;
+  color: var(--navy-primary);
+  margin-bottom: 20px;
+}
+
+.hero-description {
+  font-size: 18px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  max-width: 480px;
+  margin-bottom: 20px;
+}
+
+.hero-subtext-divider {
+  width: 44px;
+  height: 2.5px;
+  background: var(--gradient-brand);
+  margin-bottom: 14px;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
+}
+
+.hero-subtext {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--navy-primary);
+}
+
+/* Ecosystem Section 02 */
+.ecosystem-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  min-height: 540px;
+  margin-top: 40px;
+}
+
+.ecosystem-center-orb {
+  width: 210px;
+  height: 210px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 35% 30%,
+    rgba(255, 255, 255, 0.98),
+    rgba(238, 245, 255, 0.5) 50%,
+    rgba(190, 215, 255, 0.3)
+  );
+  backdrop-filter: blur(20px);
+  border: 1.5px solid rgba(255, 255, 255, 0.95);
+  box-shadow: 0 20px 50px rgba(37, 99, 235, 0.16);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+  text-align: center;
+  padding: 16px;
+}
+
+.ecosystem-node-card {
+  width: 220px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(20px);
+  border: 1.5px solid rgba(255, 255, 255, 0.9);
+  border-radius: 20px;
+  box-shadow: 0 16px 40px rgba(37, 99, 235, 0.08);
+  position: absolute;
+  z-index: 6;
+  text-align: center;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+}
+
+.ecosystem-node-card:hover {
+  transform: translateY(-6px) scale(1.03);
+  background: rgba(255, 255, 255, 0.88);
+  border-color: rgba(37, 99, 235, 0.4);
+  box-shadow: 0 22px 55px rgba(124, 58, 237, 0.18);
+}
+
+.node-icon-circle {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(238, 245, 255, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 12px;
+  color: var(--blue-primary);
+}
+
+.node-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--navy-primary);
+  margin-bottom: 6px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.node-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+/* Node Positioning in Orbit */
+.node-top { top: 0px; left: 50%; transform: translateX(-50%); }
+.node-bottom { bottom: 0px; left: 50%; transform: translateX(-50%); }
+.node-left { left: 8%; top: 50%; transform: translateY(-50%); }
+.node-right { right: 8%; top: 50%; transform: translateY(-50%); }
+
+/* Direct Contact Section 03 */
+.contact-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  margin-top: 40px;
+}
+
+.contact-card-item {
+  padding: 32px 24px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.contact-card-item:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 24px 60px rgba(37, 99, 235, 0.14);
+}
+
+.card-icon-wrapper {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(238, 245, 255, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--blue-primary);
+  margin-bottom: 16px;
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.1);
+}
+
+.card-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.card-value {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--navy-primary);
+  margin-bottom: 16px;
+}
+
+.card-arrow-link {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--blue-primary);
+  transition: all 0.2s ease;
+}
+
+.contact-card-item:hover .card-arrow-link {
+  background: var(--blue-primary);
+  color: var(--white);
+  transform: translateY(-2px);
+}
+
+/* Social Buttons */
+.social-buttons-row {
+  display: flex;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.social-circle-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--navy-primary);
+  text-decoration: none;
+  transition: all 0.25s ease;
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.06);
+}
+
+.social-circle-btn:hover {
+  background: var(--gradient-brand);
+  color: var(--white);
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px rgba(124, 58, 237, 0.3);
+}
+
+/* Section 04 — Dark Climax CTA */
+.section-dark-cta {
+  background: var(--gradient-dark-cta);
+  color: var(--white);
+  padding: 130px 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.section-dark-cta .section-label {
+  color: #93C5FD;
+}
+
+.section-dark-cta .hero-headline {
+  color: var(--white);
+}
+
+.section-dark-cta .hero-description {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.cta-dark-orb {
+  width: 420px;
+  height: 420px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 35% 30%,
+    rgba(255, 255, 255, 0.25) 0%,
+    rgba(37, 99, 235, 0.3) 40%,
+    rgba(91, 33, 182, 0.6) 80%
+  );
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  box-shadow:
+    0 30px 90px rgba(0, 0, 0, 0.4),
+    inset 0 0 50px rgba(255, 255, 255, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.floating-glass-tile {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 16px;
+  animation: floatTile 6s ease-in-out infinite alternate;
+}
+
+@keyframes floatTile {
+  0% { transform: translateY(0px) rotate(0deg); }
+  100% { transform: translateY(-15px) rotate(4deg); }
+}
+
+/* Responsive Rules */
+@media (max-width: 1024px) {
+  .floating-navbar-container { width: 95%; }
+  .hero-headline { font-size: 42px; }
+  .ecosystem-node-card { width: 180px; padding: 14px; }
+  .node-left { left: 2%; }
+  .node-right { right: 2%; }
+  .contact-cards-grid { grid-template-columns: 1fr; gap: 16px; }
+}
+
+@media (max-width: 768px) {
+  .floating-navbar { height: 60px; padding: 0 16px; }
+  .nav-links { display: none; }
+  .section-hero { padding-top: 130px; }
+  .ecosystem-container { min-height: auto; gap: 20px; }
+  .ecosystem-node-card { position: relative; top: auto; left: auto; right: auto; bottom: auto; transform: none !important; width: 100%; }
+  .glass-orb-sphere { width: 220px; height: 220px; }
+  .cta-dark-orb { width: 280px; height: 280px; }
+}

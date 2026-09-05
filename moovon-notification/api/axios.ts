@@ -6,7 +6,7 @@ export const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 20000, // 20 second timeout — prevents infinite spinner
+  timeout: 60000, // 60 second timeout — prevents infinite spinner while waiting for slow SMTP
 });
 
 // Interceptor to inject Authorization token

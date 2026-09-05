@@ -25,7 +25,11 @@ export class RolesGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<RequestWithUser>();
     const { user } = request;
 
-    if (!user || !requiredRoles.includes(user.role)) {
+    // Normalize roles to handle both 'admin' and 'super_admin'
+    const normalizedRequiredRoles = requiredRoles.map(r => r === 'admin' ? 'super_admin' : r);
+    const normalizedUserRole = user?.role === 'admin' ? 'super_admin' : user?.role;
+
+    if (!user || !normalizedRequiredRoles.includes(normalizedUserRole)) {
       throw new ForbiddenException(
         `Access denied. Required role(s): ${requiredRoles.join(', ')}`,
       );

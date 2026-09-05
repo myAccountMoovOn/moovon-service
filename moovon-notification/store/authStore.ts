@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { api } from '../api/axios';
+import { useBrandingStore } from './brandingStore';
 
 interface User {
   id: string;
@@ -146,6 +147,7 @@ export const useAuthStore = create<AuthState>()(
       
       logout: () => {
         set({ user: null, session: null });
+        useBrandingStore.getState().clearBranding();
       },
     }),
     {
