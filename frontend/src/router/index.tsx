@@ -105,14 +105,28 @@ export const router = createBrowserRouter([
 
 import ResellerHome from '../pages/ResellerHome';
 import ResellerSignup from '../pages/auth/ResellerSignup';
+import ResellerLayout from '../layouts/ResellerLayout';
+import ResellerDashboard from '../pages/reseller/Dashboard';
+
 export const resellerRouter = createBrowserRouter([
   {
     path: '/',
     element: <ResellerHome />,
   },
   {
+    path: '/login',
+    element: <Login />,
+  },
+  {
     path: '/signup',
     element: <ResellerSignup />,
+  },
+  {
+    path: '/',
+    element: <ResellerLayout />,
+    children: [
+      { path: 'dashboard', element: <ResellerDashboard /> }
+    ]
   },
   {
     path: '*',
@@ -126,6 +140,10 @@ export const companyRouter = createBrowserRouter([
   {
     path: '/',
     element: <CompanyHome />,
+  },
+  {
+    path: '/login',
+    element: <Login />,
   },
   {
     path: '/signup',
