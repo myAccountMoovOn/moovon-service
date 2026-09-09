@@ -38,9 +38,14 @@ export const LoginCard: React.FC = () => {
         // Direct session response if OTP disabled
         const session = res.data?.data?.session || res.data?.session;
         const backendUser = res.data?.data?.user || res.data?.user;
-        const rawRole = backendUser?.role || 'customer';
-        const isAdmin = ['provider', 'super_admin', 'admin', 'reseller'].includes(rawRole);
-        const mappedRole: 'admin' | 'customer' = isAdmin ? 'admin' : 'customer';
+        const rawRole = (backendUser?.role || 'customer').toString().toLowerCase();
+        
+        let mappedRole: 'admin' | 'company' | 'customer' = 'customer';
+        if (rawRole === 'super_admin') {
+          mappedRole = 'admin';
+        } else if (rawRole === 'provider' || rawRole === 'company' || rawRole === 'reseller' || rawRole === 'admin' || window.location.hostname.startsWith('company.')) {
+          mappedRole = 'company';
+        }
 
         if (backendUser) {
           setFallbackUser(backendUser, mappedRole, session);
@@ -56,7 +61,9 @@ export const LoginCard: React.FC = () => {
             console.warn('Supabase setSession warning:', e);
           }
         }
-        navigate(mappedRole === 'admin' ? '/admin/dashboard' : '/customer/dashboard', { replace: true });
+        
+        const redirectTarget = mappedRole === 'admin' ? '/admin/dashboard' : (mappedRole === 'company' ? '/company/dashboard' : '/customer/dashboard');
+        navigate(redirectTarget, { replace: true });
       }
     } catch (err: any) {
       setError(err.response?.data?.message || err.message || 'Invalid email or password');
@@ -77,9 +84,14 @@ export const LoginCard: React.FC = () => {
       });
 
       const { session, user: backendUser } = res.data?.data || res.data || {};
-      const rawRole = backendUser?.role || 'customer';
-      const isAdmin = ['provider', 'super_admin', 'admin', 'reseller'].includes(rawRole);
-      const mappedRole: 'admin' | 'customer' = isAdmin ? 'admin' : 'customer';
+      const rawRole = (backendUser?.role || 'customer').toString().toLowerCase();
+
+      let mappedRole: 'admin' | 'company' | 'customer' = 'customer';
+      if (rawRole === 'super_admin') {
+        mappedRole = 'admin';
+      } else if (rawRole === 'provider' || rawRole === 'company' || rawRole === 'reseller' || rawRole === 'admin' || window.location.hostname.startsWith('company.')) {
+        mappedRole = 'company';
+      }
 
       if (backendUser) {
         setFallbackUser(backendUser, mappedRole, session);
@@ -96,7 +108,8 @@ export const LoginCard: React.FC = () => {
         }
       }
 
-      navigate(mappedRole === 'admin' ? '/admin/dashboard' : '/customer/dashboard', { replace: true });
+      const redirectTarget = mappedRole === 'admin' ? '/admin/dashboard' : (mappedRole === 'company' ? '/company/dashboard' : '/customer/dashboard');
+      navigate(redirectTarget, { replace: true });
     } catch (err: any) {
       setError(err.response?.data?.message || err.message || 'Invalid OTP code');
     } finally {

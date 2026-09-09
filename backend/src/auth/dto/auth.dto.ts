@@ -68,6 +68,27 @@ export class OtpVerifyDto {
   token: string;
 }
 
+export class ForgotPasswordDto {
+  @ApiProperty({ example: 'user@company.com' })
+  @IsEmail()
+  email: string;
+}
+
+export class ResetPasswordDto {
+  @ApiProperty({ example: 'user@company.com' })
+  @IsEmail()
+  email: string;
+
+  @ApiProperty({ example: '123456' })
+  @IsString()
+  token: string;
+
+  @ApiProperty({ example: 'NewPassword123!' })
+  @IsString()
+  @MinLength(6)
+  newPassword: string;
+}
+
 export class RegisterProviderDto {
   @ApiProperty()
   @IsEmail()

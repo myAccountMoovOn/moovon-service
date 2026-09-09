@@ -8,7 +8,8 @@ const Login: React.FC = () => {
 
   // If already logged in, redirect based on role
   if (!isLoading && user) {
-    return <Navigate to={role === 'admin' ? '/admin/dashboard' : '/customer/dashboard'} replace />;
+    const redirectTarget = role === 'admin' ? '/admin/dashboard' : (role === 'company' ? '/company/dashboard' : '/customer/dashboard');
+    return <Navigate to={redirectTarget} replace />;
   }
 
   return <BillJiHomeLoginPage />;

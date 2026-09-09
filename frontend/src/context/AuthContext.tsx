@@ -2,12 +2,14 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../api/supabaseClient';
 
+export type UserAppRole = 'admin' | 'company' | 'customer' | null;
+
 interface AuthContextType {
   session: Session | null;
   user: User | null;
-  role: 'admin' | 'customer' | null;
+  role: UserAppRole;
   isLoading: boolean;
-  setFallbackUser: (user: any, role: 'admin' | 'customer', userSession?: any) => void;
+  setFallbackUser: (user: any, role: UserAppRole, userSession?: any) => void;
   signOut: () => Promise<void>;
 }
 
@@ -23,7 +25,7 @@ const AuthContext = createContext<AuthContextType>({
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [role, setRole] = useState<'admin' | 'customer' | null>(null);
+  const [role, setRole] = useState<UserAppRole>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -65,20 +67,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     if (currentSession?.user) {
       setUser(currentSession.user);
-      const rawRole =
+      const rawRole = (
         currentSession.user.user_metadata?.role ||
         currentSession.user.app_metadata?.role ||
-        'customer';
-      const mappedRole = (rawRole === 'provider' || rawRole === 'super_admin' || rawRole === 'admin' || rawRole === 'reseller')
-        ? 'admin'
-        : 'customer';
+        'customer'
+      ).toString().toLowerCase();
+
+      let mappedRole: UserAppRole = 'customer';
+      if (rawRole === 'super_admin') {
+        mappedRole = 'admin';
+      } else if (rawRole === 'provider' || rawRole === 'company' || rawRole === 'reseller' || rawRole === 'admin') {
+        mappedRole = 'company';
+      }
+
       setRole(mappedRole);
       localStorage.setItem('moovon_user', JSON.stringify(currentSession.user));
       localStorage.setItem('moovon_role', mappedRole);
     } else {
       // Check fallback storage for local development environments
       const storedUser = localStorage.getItem('moovon_user');
-      const storedRole = localStorage.getItem('moovon_role') as 'admin' | 'customer' | null;
+      const storedRole = localStorage.getItem('moovon_role') as UserAppRole;
       if (storedUser && storedRole) {
         try {
           setUser(JSON.parse(storedUser));
@@ -94,7 +102,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const setFallbackUser = (userData: any, userRole: 'admin' | 'customer', userSession?: any) => {
+  const setFallbackUser = (userData: any, userRole: UserAppRole, userSession?: any) => {
     const storedUserStr = localStorage.getItem('moovon_user');
     let mergedUser = userData;
     if (storedUserStr) {
@@ -107,7 +115,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(mergedUser);
     setRole(userRole);
     localStorage.setItem('moovon_user', JSON.stringify(mergedUser));
-    localStorage.setItem('moovon_role', userRole);
+    localStorage.setItem('moovon_role', userRole || 'customer');
     if (userSession) {
       localStorage.setItem('moovon_session', JSON.stringify(userSession));
     }
