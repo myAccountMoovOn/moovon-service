@@ -102,3 +102,37 @@ export const router = createBrowserRouter([
     element: <NotFoundPage />,
   },
 ]);
+
+import ResellerHome from '../pages/ResellerHome';
+import ResellerSignup from '../pages/auth/ResellerSignup';
+export const resellerRouter = createBrowserRouter([
+  {
+    path: '/',
+    element: <ResellerHome />,
+  },
+  {
+    path: '/signup',
+    element: <ResellerSignup />,
+  },
+  {
+    path: '*',
+    element: <NotFoundPage />,
+  },
+]);
+
+import CompanyHome from '../pages/CompanyHome';
+import CompanySignup from '../pages/auth/CompanySignup';
+export const companyRouter = createBrowserRouter([
+  {
+    path: '/',
+    element: <CompanyHome />,
+  },
+  {
+    path: '/signup',
+    element: <CompanySignup />,
+  },
+  {
+    path: '*',
+    element: <NotFoundPage />,
+  },
+]);

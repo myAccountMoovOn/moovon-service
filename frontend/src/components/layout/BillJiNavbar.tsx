@@ -136,6 +136,40 @@ export const BillJiNavbar: React.FC<BillJiNavbarProps> = ({ onLoginClick }) => {
               Company <DownOutlined style={{ fontSize: '10px', color: '#94A3B8' }} />
             </span>
           </Dropdown>
+
+          <Button
+            type="default"
+            style={{
+              borderColor: '#E4EAF2',
+              color: '#334155',
+              fontWeight: 500,
+              borderRadius: '6px',
+            }}
+            onClick={() => {
+              const isLocal = window.location.hostname.includes('localhost');
+              const domain = isLocal ? 'localhost:5173' : 'billji.com';
+              window.location.href = `${window.location.protocol}//reseller.${domain}`;
+            }}
+          >
+            Reseller
+          </Button>
+
+          <Button
+            type="default"
+            style={{
+              borderColor: '#E4EAF2',
+              color: '#334155',
+              fontWeight: 500,
+              borderRadius: '6px',
+            }}
+            onClick={() => {
+              const isLocal = window.location.hostname.includes('localhost');
+              const domain = isLocal ? 'localhost:5173' : 'billji.com';
+              window.location.href = `${window.location.protocol}//company.${domain}`;
+            }}
+          >
+            Company
+          </Button>
         </nav>
 
         {/* Right Actions */}
