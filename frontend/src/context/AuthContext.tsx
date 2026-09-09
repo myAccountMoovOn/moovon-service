@@ -7,7 +7,7 @@ interface AuthContextType {
   user: User | null;
   role: 'admin' | 'customer' | null;
   isLoading: boolean;
-  setFallbackUser: (user: any, role: 'admin' | 'customer') => void;
+  setFallbackUser: (user: any, role: 'admin' | 'customer', userSession?: any) => void;
   signOut: () => Promise<void>;
 }
 
