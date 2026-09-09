@@ -29,6 +29,11 @@ import Billing from '../pages/customer/Billing';
 import Profile from '../pages/customer/Profile';
 import CustomerNotifications from '../pages/customer/Notifications';
 
+// Reseller & Company Domain Pages
+import ResellerHome from '../pages/ResellerHome';
+import ResellerSignup from '../pages/auth/ResellerSignup';
+import CompanyHome from '../pages/CompanyHome';
+import CompanySignup from '../pages/auth/CompanySignup';
 
 const NotFoundPage = () => (
   <Result
@@ -39,18 +44,10 @@ const NotFoundPage = () => (
   />
 );
 
-export const router = createBrowserRouter([
-  {
-    path: '/',
-    element: <Home />,
-  },
+const commonRoutes = [
   {
     path: '/login',
     element: <Login />,
-  },
-  {
-    path: '/signup',
-    element: <Signup />,
   },
   {
     path: '/mock-payment',
@@ -97,14 +94,26 @@ export const router = createBrowserRouter([
       },
     ],
   },
+];
+
+// Main App Router (localhost:5173 / app.domain.com)
+export const router = createBrowserRouter([
+  {
+    path: '/',
+    element: <Home />,
+  },
+  {
+    path: '/signup',
+    element: <Signup />,
+  },
+  ...commonRoutes,
   {
     path: '*',
     element: <NotFoundPage />,
   },
 ]);
 
-import ResellerHome from '../pages/ResellerHome';
-import ResellerSignup from '../pages/auth/ResellerSignup';
+// Reseller Subdomain Router (reseller.localhost:5173 / reseller.domain.com)
 export const resellerRouter = createBrowserRouter([
   {
     path: '/',
@@ -114,14 +123,14 @@ export const resellerRouter = createBrowserRouter([
     path: '/signup',
     element: <ResellerSignup />,
   },
+  ...commonRoutes,
   {
     path: '*',
     element: <NotFoundPage />,
   },
 ]);
 
-import CompanyHome from '../pages/CompanyHome';
-import CompanySignup from '../pages/auth/CompanySignup';
+// Company Subdomain Router (company.localhost:5173 / company.domain.com)
 export const companyRouter = createBrowserRouter([
   {
     path: '/',
@@ -131,6 +140,7 @@ export const companyRouter = createBrowserRouter([
     path: '/signup',
     element: <CompanySignup />,
   },
+  ...commonRoutes,
   {
     path: '*',
     element: <NotFoundPage />,
