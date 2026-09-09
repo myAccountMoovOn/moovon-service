@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Form, Input, Button, Card, Typography, message, Result } from 'antd';
 import { UserOutlined, MailOutlined, LockOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import BillJiNavbar from '../../components/layout/BillJiNavbar';
 import BillJiFooter from '../../components/layout/BillJiFooter';
+import axiosInstance from '../../api/axiosInstance';
 
 const { Title, Text } = Typography;
 
@@ -13,23 +14,76 @@ const ResellerSignup: React.FC = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState<'form' | 'otp' | 'success'>('form');
   const [userEmail, setUserEmail] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [countdown, setCountdown] = useState(0);
 
-  const onFinishForm = (values: any) => {
-    console.log('Received values of form: ', values);
-    setUserEmail(values.email);
-    message.success(`OTP sent to ${values.email}`);
-    setStep('otp');
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (step === 'otp' && countdown > 0) {
+      timer = setInterval(() => {
+        setCountdown((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [step, countdown]);
+
+  const handleSendOtp = async (email: string, name: string, password: string) => {
+    try {
+      setLoading(true);
+      await axiosInstance.post('/auth/register-reseller-step1', {
+        name: name,
+        email: email,
+        password: password,
+        companyName: name + ' Agency', // Defaulting as per DTO requirement
+        phone: '0000000000', // Defaulting
+      });
+      setUserEmail(email);
+      message.success(`OTP sent to ${email}`);
+      setStep('otp');
+      setCountdown(40); // Start 40-second timer
+    } catch (error: any) {
+      const errorMsg = error.response?.data?.message || 'Failed to send OTP. Please try again.';
+      if (errorMsg.toLowerCase().includes('email')) {
+        form.setFields([{ name: 'email', errors: [errorMsg] }]);
+      } else {
+        message.error(errorMsg);
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const onFinishOtp = (values: any) => {
-    console.log('Received OTP: ', values);
-    message.success('Email verified successfully!');
-    setStep('success');
+  const onFinishForm = async (values: any) => {
+    await handleSendOtp(values.email, values.name, values.password);
+  };
+
+  const onResendOtp = async () => {
+    const values = form.getFieldsValue();
+    await handleSendOtp(values.email, values.name, values.password);
+  };
+
+  const onFinishOtp = async (values: any) => {
+    try {
+      setLoading(true);
+      await axiosInstance.post('/auth/register-verify', {
+        email: userEmail,
+        token: values.otp,
+      });
+      message.success('Email verified successfully!');
+      setStep('success');
+    } catch (error: any) {
+      const errorMsg = error.response?.data?.message || 'Invalid OTP. Please try again.';
+      otpForm.setFields([{ name: 'otp', errors: [errorMsg] }]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#F0FDF4' }}>
-      <BillJiNavbar />
+      <BillJiNavbar hideLogin hideSignUp />
       <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '40px 20px' }}>
         <Card style={{ width: '100%', maxWidth: '450px', borderRadius: '12px', boxShadow: '0 8px 24px rgba(22, 163, 74, 0.1)' }}>
           {step === 'form' && (
@@ -73,11 +127,21 @@ const ResellerSignup: React.FC = () => {
                   <Input.Password prefix={<LockOutlined />} placeholder="••••••••" />
                 </Form.Item>
 
-                <Form.Item>
-                  <Button type="primary" htmlType="submit" block style={{ backgroundColor: '#16A34A', borderColor: '#16A34A', height: '48px', fontSize: '16px' }}>
+                <Form.Item style={{ marginBottom: '16px' }}>
+                  <Button type="primary" htmlType="submit" loading={loading} block style={{ backgroundColor: '#16A34A', borderColor: '#16A34A', height: '48px', fontSize: '16px' }}>
                     Create Reseller Account
                   </Button>
                 </Form.Item>
+
+                <div style={{ textAlign: 'center', fontSize: '14px', color: '#64748B' }}>
+                  Already have an account?{' '}
+                  <span 
+                    onClick={() => navigate('/login')} 
+                    style={{ color: '#16A34A', fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    Login
+                  </span>
+                </div>
               </Form>
             </>
           )}
@@ -101,19 +165,26 @@ const ResellerSignup: React.FC = () => {
                   name="otp"
                   rules={[{ required: true, message: 'Please input the OTP!' }, { len: 6, message: 'OTP must be 6 digits' }]}
                 >
-                  <Input.OTP length={6} style={{ width: '100%' }} />
+                  <div style={{ display: 'flex', justifyContent: 'center' }}>
+                    <Input.OTP length={6} size="large" />
+                  </div>
                 </Form.Item>
 
                 <Form.Item>
-                  <Button type="primary" htmlType="submit" block style={{ backgroundColor: '#16A34A', borderColor: '#16A34A', height: '48px', fontSize: '16px' }}>
+                  <Button type="primary" htmlType="submit" loading={loading} block style={{ backgroundColor: '#16A34A', borderColor: '#16A34A', height: '48px', fontSize: '16px' }}>
                     Verify & Continue
                   </Button>
                 </Form.Item>
 
                 <div style={{ textAlign: 'center' }}>
                   <Text type="secondary">Didn't receive the code? </Text>
-                  <Button type="link" style={{ padding: 0, color: '#16A34A' }} onClick={() => message.success(`New OTP sent to ${userEmail}`)}>
-                    Resend OTP
+                  <Button 
+                    type="link" 
+                    disabled={countdown > 0} 
+                    style={{ padding: 0, color: countdown > 0 ? '#94A3B8' : '#16A34A' }} 
+                    onClick={onResendOtp}
+                  >
+                    {countdown > 0 ? `Resend OTP in ${countdown}s` : 'Resend OTP'}
                   </Button>
                 </div>
               </Form>
@@ -126,8 +197,8 @@ const ResellerSignup: React.FC = () => {
               title="Successfully Registered!"
               subTitle="Your reseller account has been verified and created."
               extra={[
-                <Button type="primary" key="console" onClick={() => navigate('/login')} style={{ backgroundColor: '#16A34A', borderColor: '#16A34A' }}>
-                  Go to Login
+                <Button type="primary" key="console" onClick={() => navigate('/dashboard')} style={{ backgroundColor: '#16A34A', borderColor: '#16A34A' }}>
+                  Go to Dashboard
                 </Button>
               ]}
             />
