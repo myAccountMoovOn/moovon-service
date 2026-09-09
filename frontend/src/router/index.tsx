@@ -1,7 +1,7 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
+import Home from '../pages/Home';
 import Login from '../pages/auth/Login';
 import Signup from '../pages/auth/Signup';
-import About from '../pages/About';
 import { ProtectedRoute } from '../components/ProtectedRoute';
 import AdminLayout from '../layouts/AdminLayout';
 import CustomerLayout from '../layouts/CustomerLayout';
@@ -39,13 +39,10 @@ const NotFoundPage = () => (
   />
 );
 
-import Contact from '../pages/Contact/Contact';
-import PublicServices from '../pages/Services/Services';
-
 export const router = createBrowserRouter([
   {
     path: '/',
-    element: <Navigate to="/login" replace />,
+    element: <Home />,
   },
   {
     path: '/login',
@@ -56,20 +53,8 @@ export const router = createBrowserRouter([
     element: <Signup />,
   },
   {
-    path: '/contact',
-    element: <Contact />,
-  },
-  {
-    path: '/services',
-    element: <PublicServices />,
-  },
-  {
     path: '/mock-payment',
     element: <MockPayment />,
-  },
-  {
-    path: '/about',
-    element: <About />,
   },
   {
     path: '/admin',
