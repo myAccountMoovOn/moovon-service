@@ -406,50 +406,7 @@ export const LoginCard: React.FC = () => {
         </span>
       </div>
 
-      {/* Partner or Reseller CTA Box */}
-      <div
-        onClick={() => navigate('/contact')}
-        style={{
-          backgroundColor: '#F0F7FF',
-          border: '1px solid #D0E4FF',
-          borderRadius: '12px',
-          padding: '14px 16px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          cursor: 'pointer',
-          transition: 'transform 0.15s ease',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div
-            style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '8px',
-              backgroundColor: '#FFFFFF',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#155EEF',
-              fontSize: '18px',
-              flexShrink: 0,
-              boxShadow: '0 1px 3px rgba(21, 94, 239, 0.1)',
-            }}
-          >
-            <BankOutlined />
-          </div>
-          <div>
-            <div style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A', lineHeight: 1.2 }}>
-              Are you a Partner or Reseller?
-            </div>
-            <div style={{ fontSize: '11px', color: '#64748B', marginTop: '2px' }}>
-              Get in touch with us to join our partner program.
-            </div>
-          </div>
-        </div>
-        <ArrowRightOutlined style={{ color: '#155EEF', fontSize: '14px' }} />
-      </div>
+
     </div>
   );
 };

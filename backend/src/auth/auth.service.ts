@@ -134,6 +134,15 @@ export class AuthService {
   }
 
   async registerResellerStep1(dto: import('./dto/auth.dto').RegisterResellerDto) {
+    // Check if user already exists
+    const { data: { users }, error: checkError } = await this.supabaseAdmin.auth.admin.listUsers();
+    if (!checkError && users) {
+      const exists = users.find(u => u.email === dto.email);
+      if (exists) {
+        throw new UnauthorizedException('User with this email already exists.');
+      }
+    }
+
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = Date.now() + 10 * 60 * 1000;
 
@@ -158,6 +167,15 @@ export class AuthService {
         throw new InternalServerErrorException('Invalid Reseller Code');
       }
       resellerId = reseller.id;
+    }
+
+    // Check if user already exists
+    const { data: { users }, error: checkError } = await this.supabaseAdmin.auth.admin.listUsers();
+    if (!checkError && users) {
+      const exists = users.find(u => u.email === dto.email);
+      if (exists) {
+        throw new UnauthorizedException('User with this email already exists.');
+      }
     }
 
     // 1. Generate a custom 6-digit OTP
