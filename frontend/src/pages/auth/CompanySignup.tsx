@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import { Form, Input, Button, Card, Typography, Steps, message, Upload, Result, Alert } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Form, Input, Button, Card, Typography, Steps, message, Upload, Result } from 'antd';
 import { UserOutlined, MailOutlined, LockOutlined, BankOutlined, PhoneOutlined, GlobalOutlined, UploadOutlined, SafetyCertificateOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import BillJiNavbar from '../../components/layout/BillJiNavbar';
 import BillJiFooter from '../../components/layout/BillJiFooter';
+import axiosInstance from '../../api/axiosInstance';
 
 const { Title, Text } = Typography;
 const API_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1';
@@ -18,6 +21,20 @@ const CompanySignup: React.FC = () => {
   const [otpForm] = Form.useForm();
   const navigate = useNavigate();
   const [userEmail, setUserEmail] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (currentStep === 2 && countdown > 0) {
+      timer = setInterval(() => {
+        setCountdown((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [currentStep, countdown]);
 
   const onNext = async () => {
     try {
@@ -52,6 +69,29 @@ const CompanySignup: React.FC = () => {
       setCurrentStep(2); // Go to OTP step
     } catch (err: any) {
       setError(err.response?.data?.message || err.message || 'Registration failed. Please check your inputs.');
+  const handleSendOtp = async (values: any) => {
+    try {
+      setLoading(true);
+      await axiosInstance.post('/auth/register-provider-step1', {
+        name: values.name,
+        companyName: values.companyName,
+        email: values.email,
+        password: values.password,
+        phone: values.contact || '0000000000', // Map contact to phone for DTO
+        // address, domain, logo etc. can be updated later via profile API
+      });
+      message.success(`OTP sent to ${values.email}`);
+      setCurrentStep(2); // Go to OTP step
+      setCountdown(40); // Start 40-second timer
+    } catch (error: any) {
+      const errorMsg = error.response?.data?.message || 'Failed to send OTP. Please try again.';
+      if (errorMsg.toLowerCase().includes('email')) {
+        // Since we are in step 1 here, we need to go back to step 0 if the error is about email
+        setCurrentStep(0);
+        form.setFields([{ name: 'email', errors: [errorMsg] }]);
+      } else {
+        message.error(errorMsg);
+      }
     } finally {
       setLoading(false);
     }
@@ -94,6 +134,27 @@ const CompanySignup: React.FC = () => {
       message.success(`A new verification OTP code was sent to ${userEmail}`);
     } catch (err: any) {
       message.error(err.response?.data?.message || 'Failed to resend OTP');
+  const onFinish = async (values: any) => {
+    await handleSendOtp(values);
+  };
+
+  const onResendOtp = async () => {
+    const values = form.getFieldsValue();
+    await handleSendOtp(values);
+  };
+
+  const onFinishOtp = async (values: any) => {
+    try {
+      setLoading(true);
+      await axiosInstance.post('/auth/register-verify', {
+        email: userEmail,
+        token: values.otp,
+      });
+      message.success('Email verified successfully!');
+      setCurrentStep(3); // Go to Success
+    } catch (error: any) {
+      const errorMsg = error.response?.data?.message || 'Invalid OTP. Please try again.';
+      otpForm.setFields([{ name: 'otp', errors: [errorMsg] }]);
     } finally {
       setLoading(false);
     }
@@ -101,7 +162,7 @@ const CompanySignup: React.FC = () => {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#F8FAFC' }}>
-      <BillJiNavbar />
+      <BillJiNavbar hideLogin hideSignUp />
       <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '40px 20px' }}>
         <Card style={{ width: '100%', maxWidth: '550px', borderRadius: '12px', boxShadow: '0 8px 24px rgba(20, 104, 232, 0.1)' }}>
           {currentStep < 3 && (
@@ -151,11 +212,21 @@ const CompanySignup: React.FC = () => {
                   <Input.Password prefix={<LockOutlined />} placeholder="••••••••" />
                 </Form.Item>
 
-                <Form.Item>
+                <Form.Item style={{ marginBottom: '16px' }}>
                   <Button type="primary" onClick={onNext} block style={{ backgroundColor: '#1468E8', borderColor: '#1468E8', height: '48px', fontSize: '16px' }}>
                     Next Step
                   </Button>
                 </Form.Item>
+
+                <div style={{ textAlign: 'center', fontSize: '14px', color: '#64748B' }}>
+                  Already have an account?{' '}
+                  <span 
+                    onClick={() => navigate('/login')} 
+                    style={{ color: '#1468E8', fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    Login
+                  </span>
+                </div>
               </div>
 
               {/* Step 2: Company Profile (Optional White-label Settings) */}
@@ -191,6 +262,7 @@ const CompanySignup: React.FC = () => {
                   </Button>
                   <Button type="primary" htmlType="submit" loading={loading} style={{ flex: 1, backgroundColor: '#1468E8', borderColor: '#1468E8', height: '48px', fontSize: '16px' }}>
                     {loading ? 'Sending OTP...' : 'Send OTP & Verify'}
+                    Verify Email
                   </Button>
                 </div>
               </div>
@@ -216,12 +288,13 @@ const CompanySignup: React.FC = () => {
                   name="otp"
                   rules={[{ required: true, message: 'Please input the OTP!' }]}
                 >
-                  <Input.OTP length={6} style={{ width: '100%' }} />
+                  <Input.OTP length={6} size="large" style={{ display: 'flex', justifyContent: 'center' }} />
                 </Form.Item>
 
                 <Form.Item>
                   <Button type="primary" htmlType="submit" loading={loading} block style={{ backgroundColor: '#1468E8', borderColor: '#1468E8', height: '48px', fontSize: '16px' }}>
                     {loading ? 'Verifying...' : 'Verify & Create Account'}
+                    Verify & Create Account
                   </Button>
                 </Form.Item>
 
@@ -229,6 +302,13 @@ const CompanySignup: React.FC = () => {
                   <Text type="secondary">Didn't receive the code? </Text>
                   <Button type="link" style={{ padding: 0, color: '#1468E8' }} onClick={handleResendOtp}>
                     Resend OTP
+                  <Button 
+                    type="link" 
+                    disabled={countdown > 0} 
+                    style={{ padding: 0, color: countdown > 0 ? '#94A3B8' : '#1468E8' }} 
+                    onClick={onResendOtp}
+                  >
+                    {countdown > 0 ? `Resend OTP in ${countdown}s` : 'Resend OTP'}
                   </Button>
                 </div>
               </Form>

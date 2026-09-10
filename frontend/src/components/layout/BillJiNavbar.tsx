@@ -7,9 +7,11 @@ import BillJiLogo from '../common/BillJiLogo';
 
 interface BillJiNavbarProps {
   onLoginClick?: () => void;
+  hideLogin?: boolean;
+  hideSignUp?: boolean;
 }
 
-export const BillJiNavbar: React.FC<BillJiNavbarProps> = ({ onLoginClick }) => {
+export const BillJiNavbar: React.FC<BillJiNavbarProps> = ({ onLoginClick, hideLogin, hideSignUp }) => {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -196,39 +198,25 @@ export const BillJiNavbar: React.FC<BillJiNavbarProps> = ({ onLoginClick }) => {
             <span>EN</span>
           </div>
 
-          {/* Login Text Link */}
-          <span
-            onClick={handleLoginClick}
-            style={{
-              color: '#1E293B',
-              fontSize: '14px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              padding: '6px 12px',
-              borderRadius: '6px',
-              transition: 'background-color 0.2s',
-            }}
-          >
-            Login
-          </span>
-
-          {/* Start Free Trial Button */}
-          <Button
-            type="primary"
-            onClick={() => navigate('/signup')}
-            style={{
-              backgroundColor: '#155EEF',
-              borderColor: '#155EEF',
-              height: '42px',
-              padding: '0 20px',
-              borderRadius: '8px',
-              fontWeight: 600,
-              fontSize: '14px',
-              boxShadow: '0 2px 6px rgba(21, 94, 239, 0.25)',
-            }}
-          >
-            Start Free Trial
-          </Button>
+          {/* Auth Button — single Login / Register */}
+          {!hideLogin && (
+            <Button
+              type="primary"
+              onClick={handleLoginClick}
+              style={{
+                backgroundColor: '#155EEF',
+                borderColor: '#155EEF',
+                height: '42px',
+                padding: '0 24px',
+                borderRadius: '8px',
+                fontWeight: 600,
+                fontSize: '14px',
+                boxShadow: '0 2px 6px rgba(21, 94, 239, 0.25)',
+              }}
+            >
+              Login / Register
+            </Button>
+          )}
 
           {/* Mobile Menu Toggle Button (Strictly hidden on desktop/large screens) */}
           <div

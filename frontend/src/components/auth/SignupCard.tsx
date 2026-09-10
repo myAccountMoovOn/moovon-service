@@ -4,6 +4,7 @@ import { MailOutlined, LockOutlined, UserOutlined, PhoneOutlined, ArrowRightOutl
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { supabase } from '../../api/supabaseClient';
+import { getStorageKey } from '../../context/AuthContext';
 
 const API_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1';
 
@@ -76,8 +77,8 @@ export const SignupCard: React.FC = () => {
         phone,
         role: 'customer',
       };
-      localStorage.setItem('moovon_user', JSON.stringify(newUser));
-      localStorage.setItem('moovon_role', 'customer');
+      localStorage.setItem(getStorageKey('user'), JSON.stringify(newUser));
+      localStorage.setItem(getStorageKey('role'), 'customer');
 
       navigate('/login');
     } catch (err: any) {

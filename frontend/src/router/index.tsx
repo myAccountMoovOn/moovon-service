@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate } from 'react-router-dom';
 import Home from '../pages/Home';
 import Login from '../pages/auth/Login';
 import Signup from '../pages/auth/Signup';
+import ForgotPassword from '../pages/auth/ForgotPassword';
 import { ProtectedRoute } from '../components/ProtectedRoute';
 import AdminLayout from '../layouts/AdminLayout';
 import CustomerLayout from '../layouts/CustomerLayout';
@@ -57,6 +58,12 @@ const commonRoutes = [
   {
     path: '/forgot-password',
     element: <CompanyForgotPassword />,
+    path: '/signup',
+    element: <Signup />,
+  },
+  {
+    path: '/forgot-password',
+    element: <ForgotPassword />,
   },
   {
     path: '/mock-payment',
@@ -174,17 +181,70 @@ export const router = createBrowserRouter([
   },
 ]);
 
-// Reseller Subdomain Router (reseller.localhost:5173 / reseller.domain.com)
+import ResellerHome from '../pages/ResellerHome';
+import ResellerSignup from '../pages/auth/ResellerSignup';
+import ResellerLayout from '../layouts/ResellerLayout';
+import ResellerDashboard from '../pages/reseller/Dashboard';
+import ResellerCompanies from '../pages/reseller/Companies';
+import ResellerTenantBilling from '../pages/reseller/TenantBilling';
+import ResellerPlanBuilder from '../pages/reseller/PlanBuilder';
+import ResellerFeatureLimits from '../pages/reseller/FeatureLimits';
+import ResellerAddOns from '../pages/reseller/AddOns';
+import ResellerPaymentGateways from '../pages/reseller/PaymentGateways';
+import ResellerCommunications from '../pages/reseller/Communications';
+import ResellerWhiteLabel from '../pages/reseller/WhiteLabel';
+import ResellerStaffRoles from '../pages/reseller/StaffRoles';
+import ResellerSupportTickets from '../pages/reseller/SupportTickets';
+import ResellerReports from '../pages/reseller/Reports';
+import ResellerApiIntegrations from '../pages/reseller/ApiIntegrations';
+
 export const resellerRouter = createBrowserRouter([
+  // Public routes
   {
     path: '/',
     element: <ResellerHome />,
+  },
+  {
+    path: '/login',
+    element: <Login />,
   },
   {
     path: '/signup',
     element: <ResellerSignup />,
   },
   ...commonRoutes,
+  {
+    path: '/forgot-password',
+    element: <ForgotPassword />,
+  },
+  // Protected routes — must be logged in as reseller
+  {
+    element: <ProtectedRoute allowedRole="reseller" />,
+    children: [
+      {
+        element: <ResellerLayout />,
+        children: [
+          { path: '/dashboard',         element: <ResellerDashboard /> },
+          // Tenant Management
+          { path: '/companies',         element: <ResellerCompanies /> },
+          { path: '/tenant-billing',    element: <ResellerTenantBilling /> },
+          // Commercials & Packaging
+          { path: '/plan-builder',      element: <ResellerPlanBuilder /> },
+          { path: '/feature-limits',    element: <ResellerFeatureLimits /> },
+          { path: '/add-ons',           element: <ResellerAddOns /> },
+          // Configuration
+          { path: '/payment-gateways',  element: <ResellerPaymentGateways /> },
+          { path: '/communications',    element: <ResellerCommunications /> },
+          { path: '/white-label',       element: <ResellerWhiteLabel /> },
+          // Administration
+          { path: '/staff-roles',       element: <ResellerStaffRoles /> },
+          { path: '/support-tickets',   element: <ResellerSupportTickets /> },
+          { path: '/reports',           element: <ResellerReports /> },
+          { path: '/api-integrations',  element: <ResellerApiIntegrations /> },
+        ],
+      },
+    ],
+  },
   {
     path: '*',
     element: <NotFoundPage />,
@@ -198,10 +258,18 @@ export const companyRouter = createBrowserRouter([
     element: <CompanyHome />,
   },
   {
+    path: '/login',
+    element: <Login />,
+  },
+  {
     path: '/signup',
     element: <CompanySignup />,
   },
   ...commonRoutes,
+  {
+    path: '/forgot-password',
+    element: <ForgotPassword />,
+  },
   {
     path: '*',
     element: <NotFoundPage />,
