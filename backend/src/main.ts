@@ -4,6 +4,8 @@ import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import helmet from 'helmet';
+import * as cookieParser from 'cookie-parser';
+import * as csurf from 'csurf';
 import { AppModule } from './app.module';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { ResponseTransformInterceptor } from './common/interceptors/response-transform.interceptor';
@@ -27,22 +29,25 @@ async function bootstrap(): Promise<void> {
   // CORS
   const frontendUrl = configService.get<string>('FRONTEND_URL', 'http://localhost:5173');
   app.enableCors({
-    origin: '*',
+    // origin: true automatically reflects the requesting origin, satisfying credentials: true
+    origin: true,
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'ngrok-skip-browser-warning'], // ← fix 1
-    credentials: false,
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token', 'ngrok-skip-browser-warning'],
+    credentials: true,
   });
 
   app.use((req: Request, res: Response, next: NextFunction) => {
     res.setHeader('ngrok-skip-browser-warning', 'true');
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, ngrok-skip-browser-warning'); // ← fix 2
+    // Removed manual Access-Control-Allow-Origin '*' because app.enableCors(origin: true) handles it securely.
     if (req.method === 'OPTIONS') {
       return res.sendStatus(200);
     }
     next();
   });
+
+  // Global Middlewares for Cookies and CSRF
+  app.use(cookieParser());
+  app.use(csurf({ cookie: true }));
 
   // Global prefix
   app.setGlobalPrefix('api/v1');

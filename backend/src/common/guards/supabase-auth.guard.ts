@@ -39,14 +39,19 @@ export class SupabaseAuthGuard implements CanActivate {
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest<RequestWithUser>();
+    const request = context.switchToHttp().getRequest<RequestWithUser & { cookies: any }>();
     const authHeader = request.headers['authorization'];
-
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      throw new UnauthorizedException('Missing or invalid Authorization header');
+    
+    let token = '';
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.split(' ')[1];
+    } else if (request.cookies && request.cookies['access_token']) {
+      token = request.cookies['access_token'];
     }
 
-    const token = authHeader.split(' ')[1];
+    if (!token) {
+      throw new UnauthorizedException('Missing or invalid token in Authorization header or cookies');
+    }
 
     let supabaseUser: any = null;
 
