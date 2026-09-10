@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Form, Input, Button, Card, Typography, Steps, message, Upload, Result } from 'antd';
-import { UserOutlined, MailOutlined, LockOutlined, BankOutlined, PhoneOutlined, GlobalOutlined, UploadOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
+import { UserOutlined, MailOutlined, LockOutlined, BankOutlined, PhoneOutlined, GlobalOutlined, UploadOutlined, SafetyCertificateOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import BillJiNavbar from '../../components/layout/BillJiNavbar';
 import BillJiFooter from '../../components/layout/BillJiFooter';
@@ -125,6 +125,7 @@ const CompanySignup: React.FC = () => {
               layout="vertical"
               size="large"
             >
+              {/* Step 1: Account Information */}
               <div style={{ display: currentStep === 0 ? 'block' : 'none' }}>
                 <Form.Item name="name" label="Your Name" rules={[{ required: true, message: 'Please input your name!' }]}>
                   <Input prefix={<UserOutlined />} placeholder="Jane Doe" />
@@ -162,22 +163,30 @@ const CompanySignup: React.FC = () => {
                 </div>
               </div>
 
+              {/* Step 2: Company Profile (Optional White-label Settings) */}
               <div style={{ display: currentStep === 1 ? 'block' : 'none' }}>
-                <Form.Item name="logo" label="Company Logo">
+                <div style={{ backgroundColor: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: '8px', padding: '12px 16px', marginBottom: '20px', fontSize: '13px', color: '#1E40AF', display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                  <InfoCircleOutlined style={{ fontSize: '16px', marginTop: '2px', flexShrink: 0 }} />
+                  <div>
+                    <strong>Optional Profile Info:</strong> Logo, address, and custom domain are optional right now. You can easily add and manage your white-label brand settings anytime after login from Brand Settings.
+                  </div>
+                </div>
+
+                <Form.Item name="logo" label="Company Logo (Optional)">
                   <Upload maxCount={1} beforeUpload={() => false} listType="picture">
-                    <Button icon={<UploadOutlined />}>Click to Upload</Button>
+                    <Button icon={<UploadOutlined />}>Click to Upload Logo</Button>
                   </Upload>
                 </Form.Item>
 
-                <Form.Item name="address" label="Company Address" rules={[{ required: true, message: 'Please input company address!' }]}>
+                <Form.Item name="address" label="Company Address (Optional)">
                   <Input.TextArea placeholder="123 Business Avenue, Suite 100..." rows={3} />
                 </Form.Item>
 
-                <Form.Item name="contact" label="Contact Number" rules={[{ required: true, message: 'Please input contact number!' }]}>
+                <Form.Item name="contact" label="Contact Number (Optional)">
                   <Input prefix={<PhoneOutlined />} placeholder="+1 (555) 000-0000" />
                 </Form.Item>
 
-                <Form.Item name="domain" label="Company Domain" rules={[{ required: true, message: 'Please input company domain!' }]}>
+                <Form.Item name="domain" label="Company Domain (Optional)">
                   <Input prefix={<GlobalOutlined />} placeholder="acme.com" />
                 </Form.Item>
 
@@ -240,7 +249,7 @@ const CompanySignup: React.FC = () => {
             <Result
               status="success"
               title="Company Registered!"
-              subTitle="Your enterprise workspace has been successfully verified."
+              subTitle="Your enterprise workspace has been successfully verified. You can update your white-label logo and domain settings after login."
               extra={[
                 <Button type="primary" key="console" onClick={() => navigate('/login')} style={{ backgroundColor: '#1468E8', borderColor: '#1468E8' }}>
                   Go to Login
