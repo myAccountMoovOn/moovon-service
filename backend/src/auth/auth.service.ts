@@ -59,7 +59,7 @@ export class AuthService {
     return this.supabaseAdmin;
   }
 
-  async login(email: string, password: string) {
+  async login(email: string, password: string, portal?: string) {
     // 1. Verify the password to get the Supabase session
     const { data, error } = await this.supabaseAnon.auth.signInWithPassword({
       email,
@@ -70,16 +70,37 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    // Get user profile to check role and find companyId
+    const profile = await this.profileRepository.findOne({ where: { id: data.user.id } });
+    const userRole = (
+      profile?.role ||
+      data.user.user_metadata?.role ||
+      data.user.app_metadata?.role ||
+      'customer'
+    ).toString().toLowerCase();
+
+    // Portal isolation check:
+    if (portal === 'main') {
+      // Main domain (localhost:5173/login) is strictly for Super Admin / Admin
+      if (userRole !== 'super_admin' && userRole !== 'admin') {
+        throw new UnauthorizedException('User not exist');
+      }
+    } else if (portal === 'reseller') {
+      if (userRole !== 'reseller') {
+        throw new UnauthorizedException('User not exist');
+      }
+    } else if (portal === 'company') {
+      if (userRole !== 'provider' && userRole !== 'company') {
+        throw new UnauthorizedException('User not exist');
+      }
+    }
+
     // 2. Generate a custom 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
 
-    // 3. Lock the session in memory. We DO NOT sign them out so the session remains valid,
-    // but we DO NOT return it to the frontend either.
+    // 3. Lock the session in memory.
     this.otpCache.set(email, { otp, session: data.session, expiresAt });
-
-    // Get user profile to find companyId
-    const profile = await this.profileRepository.findOne({ where: { id: data.user.id } });
     
     // 4. Send the OTP via Custom SMTP
     await this.sendCustomEmailOtp(email, otp, profile?.companyId);
@@ -271,14 +292,20 @@ export class AuthService {
     }
 
     const session = data.session;
+    const profile = await this.profileRepository.findOne({
+      where: { id: session.user.id },
+      relations: ['company'],
+    });
     const customer = await this.customerRepository.findOne({
       where: { userId: session.user.id },
     });
 
+    const resolvedCompanyName = profile?.company?.name || result.companyName || customer?.companyName || (dto as any)?.companyName || '';
+
     return {
       message: result.message,
       companyCode: result.companyCode,
-      companyName: result.companyName,
+      companyName: resolvedCompanyName,
       session,
       user: {
         id: session.user.id,
@@ -286,7 +313,7 @@ export class AuthService {
         role: type === 'reseller' ? UserRole.RESELLER : (type === 'provider' ? UserRole.PROVIDER : UserRole.CUSTOMER),
         name: customer?.name || dto.name || '',
         phone: customer?.phone || dto.phone || '',
-        companyName: customer?.companyName || '',
+        companyName: resolvedCompanyName,
         address: customer?.address || '',
         gstNumber: customer?.gstNumber || '',
       },
@@ -649,7 +676,7 @@ export class AuthService {
     }
   }
 
-  async verifyOtp(email: string, token: string) {
+  async verifyOtp(email: string, token: string, portal?: string) {
     this.logger.log(`Verifying Custom OTP for ${email}`);
     
     const cached = this.otpCache.get(email);
@@ -673,11 +700,36 @@ export class AuthService {
 
     const profile = await this.profileRepository.findOne({
       where: { id: session.user.id },
+      relations: ['company'],
     });
+
+    const userRole = (
+      profile?.role ||
+      session.user.user_metadata?.role ||
+      session.user.app_metadata?.role ||
+      'customer'
+    ).toString().toLowerCase();
+
+    // Portal isolation check:
+    if (portal === 'main') {
+      if (userRole !== 'super_admin' && userRole !== 'admin') {
+        throw new UnauthorizedException('User not exist');
+      }
+    } else if (portal === 'reseller') {
+      if (userRole !== 'reseller') {
+        throw new UnauthorizedException('User not exist');
+      }
+    } else if (portal === 'company') {
+      if (userRole !== 'provider' && userRole !== 'company') {
+        throw new UnauthorizedException('User not exist');
+      }
+    }
 
     const customer = await this.customerRepository.findOne({
       where: { userId: session.user.id },
     });
+
+    const resolvedCompanyName = profile?.company?.name || customer?.companyName || session.user.user_metadata?.companyName || '';
 
     return {
       session,
@@ -687,7 +739,8 @@ export class AuthService {
         role: profile?.role ?? UserRole.CUSTOMER,
         name: customer?.name || session.user.user_metadata?.name || session.user.user_metadata?.full_name || '',
         phone: customer?.phone || session.user.user_metadata?.phone || '',
-        companyName: customer?.companyName || '',
+        companyName: resolvedCompanyName,
+        companyCode: profile?.company?.code || '',
         address: customer?.address || '',
         gstNumber: customer?.gstNumber || '',
       },

@@ -5,7 +5,6 @@ import { Spin } from 'antd';
 
 interface ProtectedRouteProps {
   allowedRole?: UserAppRole;
-  allowedRole?: 'admin' | 'customer' | 'reseller';
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRole }) => {
@@ -34,24 +33,21 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRole }) =
       return <Navigate to="/company/dashboard" replace />;
     }
 
-    // Direct role mismatch
     if (role !== allowedRole) {
+      const isResellerDomain = window.location.hostname.startsWith('reseller.');
+      const isCompanyDomain = window.location.hostname.startsWith('company.');
+
+      // On subdomains, only /dashboard and /login exist — never redirect to /admin/dashboard etc.
+      if (isResellerDomain || isCompanyDomain) {
+        return <Navigate to="/login" replace />;
+      }
+
+      // Main domain — redirect to the user's correct dashboard
+      if (role === 'reseller') {
+        return <Navigate to="/dashboard" replace />;
+      }
       return <Navigate to={`/${role}/dashboard`} replace />;
     }
-  if (allowedRole && role !== allowedRole) {
-    const isResellerDomain = window.location.hostname.startsWith('reseller.');
-    const isCompanyDomain = window.location.hostname.startsWith('company.');
-
-    // On subdomains, only /dashboard and /login exist — never redirect to /admin/dashboard etc.
-    if (isResellerDomain || isCompanyDomain) {
-      return <Navigate to="/login" replace />;
-    }
-
-    // Main domain — redirect to the user's correct dashboard
-    if (role === 'reseller') {
-      return <Navigate to="/dashboard" replace />;
-    }
-    return <Navigate to={`/${role}/dashboard`} replace />;
   }
 
   return <Outlet />;

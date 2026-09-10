@@ -50,7 +50,7 @@ const NotFoundPage = () => (
   />
 );
 
-const commonRoutes = [
+const commonAuthRoutes = [
   {
     path: '/login',
     element: <Login />,
@@ -58,67 +58,75 @@ const commonRoutes = [
   {
     path: '/forgot-password',
     element: <CompanyForgotPassword />,
-    path: '/signup',
-    element: <Signup />,
-  },
-  {
-    path: '/forgot-password',
-    element: <ForgotPassword />,
   },
   {
     path: '/mock-payment',
     element: <MockPayment />,
   },
+];
 
-  // Dedicated Company Subdomain Section Routes (Strictly Isolated for Company / Provider Users)
+const companySubRoutes = [
+  { index: true, element: <Navigate to="dashboard" replace /> },
+  { path: 'dashboard', element: <CompanyDashboard /> },
+  { path: 'crm', element: <Customers /> },
+  { path: 'customers', element: <Customers /> },
+  { path: 'customers/:id', element: <CustomerDetails /> },
+  { path: 'products', element: <Services /> },
+  { path: 'services', element: <Services /> },
+  { path: 'categories', element: <Categories /> },
+  { path: 'packages', element: <Packages /> },
+  { path: 'coupons', element: <Coupons /> },
+  { path: 'inventory', element: <Services /> },
+  { path: 'purchase', element: <Payments /> },
+  { path: 'sales', element: <Reports /> },
+  { path: 'billing', element: <Payments /> },
+  { path: 'gst-tax', element: <Reports /> },
+  { path: 'accounts', element: <Payments /> },
+  { path: 'expenses', element: <Payments /> },
+  { path: 'amc', element: <Subscriptions /> },
+  { path: 'subscriptions', element: <Subscriptions /> },
+  { path: 'service-jobs', element: <Services /> },
+  { path: 'field-staff', element: <Customers /> },
+  { path: 'assets', element: <Services /> },
+  { path: 'support-tickets', element: <Notifications /> },
+  { path: 'tasks-projects', element: <Services /> },
+  { path: 'hrms', element: <Customers /> },
+  { path: 'marketing', element: <Notifications /> },
+  { path: 'automation', element: <Notifications /> },
+  { path: 'documents', element: <Templates /> },
+  { path: 'payments', element: <Payments /> },
+  { path: 'notifications', element: <Notifications /> },
+  { path: 'templates', element: <Templates /> },
+  { path: 'reports', element: <Reports /> },
+  { path: 'branches', element: <BrandSettings /> },
+  { path: 'api-webhooks', element: <BrandSettings /> },
+  { path: 'brand-settings', element: <BrandSettings /> },
+];
+
+const companyRoutes = [
   {
     path: '/company',
     element: <ProtectedRoute allowedRole="company" />,
     children: [
       {
         element: <CompanyLayout />,
-        children: [
-          { index: true, element: <Navigate to="dashboard" replace /> },
-          { path: 'dashboard', element: <CompanyDashboard /> },
-          { path: 'crm', element: <Customers /> },
-          { path: 'customers', element: <Customers /> },
-          { path: 'customers/:id', element: <CustomerDetails /> },
-          { path: 'products', element: <Services /> },
-          { path: 'services', element: <Services /> },
-          { path: 'categories', element: <Categories /> },
-          { path: 'packages', element: <Packages /> },
-          { path: 'coupons', element: <Coupons /> },
-          { path: 'inventory', element: <Services /> },
-          { path: 'purchase', element: <Payments /> },
-          { path: 'sales', element: <Reports /> },
-          { path: 'billing', element: <Payments /> },
-          { path: 'gst-tax', element: <Reports /> },
-          { path: 'accounts', element: <Payments /> },
-          { path: 'expenses', element: <Payments /> },
-          { path: 'amc', element: <Subscriptions /> },
-          { path: 'subscriptions', element: <Subscriptions /> },
-          { path: 'service-jobs', element: <Services /> },
-          { path: 'field-staff', element: <Customers /> },
-          { path: 'assets', element: <Services /> },
-          { path: 'support-tickets', element: <Notifications /> },
-          { path: 'tasks-projects', element: <Services /> },
-          { path: 'hrms', element: <Customers /> },
-          { path: 'marketing', element: <Notifications /> },
-          { path: 'automation', element: <Notifications /> },
-          { path: 'documents', element: <Templates /> },
-          { path: 'payments', element: <Payments /> },
-          { path: 'notifications', element: <Notifications /> },
-          { path: 'templates', element: <Templates /> },
-          { path: 'reports', element: <Reports /> },
-          { path: 'branches', element: <BrandSettings /> },
-          { path: 'api-webhooks', element: <BrandSettings /> },
-          { path: 'brand-settings', element: <BrandSettings /> },
-        ],
+        children: companySubRoutes,
       },
     ],
   },
+  {
+    path: '/:companySlug',
+    element: <ProtectedRoute allowedRole="company" />,
+    children: [
+      {
+        element: <CompanyLayout />,
+        children: companySubRoutes,
+      },
+    ],
+  },
+];
 
-  // Super Admin Isolated Section Routes (STRICTLY for Super Admin ONLY)
+const adminRoutes = [
   {
     path: '/admin',
     element: <ProtectedRoute allowedRole="admin" />,
@@ -144,8 +152,9 @@ const commonRoutes = [
       },
     ],
   },
+];
 
-  // Customer Section Routes
+const customerRoutes = [
   {
     path: '/customer',
     element: <ProtectedRoute allowedRole="customer" />,
@@ -164,25 +173,6 @@ const commonRoutes = [
   },
 ];
 
-// Main App Router (localhost:5173 / app.domain.com)
-export const router = createBrowserRouter([
-  {
-    path: '/',
-    element: <Home />,
-  },
-  {
-    path: '/signup',
-    element: <Signup />,
-  },
-  ...commonRoutes,
-  {
-    path: '*',
-    element: <NotFoundPage />,
-  },
-]);
-
-import ResellerHome from '../pages/ResellerHome';
-import ResellerSignup from '../pages/auth/ResellerSignup';
 import ResellerLayout from '../layouts/ResellerLayout';
 import ResellerDashboard from '../pages/reseller/Dashboard';
 import ResellerCompanies from '../pages/reseller/Companies';
@@ -198,6 +188,68 @@ import ResellerSupportTickets from '../pages/reseller/SupportTickets';
 import ResellerReports from '../pages/reseller/Reports';
 import ResellerApiIntegrations from '../pages/reseller/ApiIntegrations';
 
+const resellerSubRoutes = [
+  { index: true, element: <ResellerDashboard /> },
+  { path: 'dashboard',         element: <ResellerDashboard /> },
+  { path: 'companies',         element: <ResellerCompanies /> },
+  { path: 'tenant-billing',    element: <ResellerTenantBilling /> },
+  { path: 'plan-builder',      element: <ResellerPlanBuilder /> },
+  { path: 'feature-limits',    element: <ResellerFeatureLimits /> },
+  { path: 'add-ons',           element: <ResellerAddOns /> },
+  { path: 'payment-gateways',  element: <ResellerPaymentGateways /> },
+  { path: 'communications',    element: <ResellerCommunications /> },
+  { path: 'white-label',       element: <ResellerWhiteLabel /> },
+  { path: 'staff-roles',       element: <ResellerStaffRoles /> },
+  { path: 'support-tickets',   element: <ResellerSupportTickets /> },
+  { path: 'reports',           element: <ResellerReports /> },
+  { path: 'api-integrations',  element: <ResellerApiIntegrations /> },
+];
+
+const resellerRoutes = [
+  {
+    path: '/dashboard',
+    element: <ProtectedRoute allowedRole="reseller" />,
+    children: [
+      {
+        element: <ResellerLayout />,
+        children: resellerSubRoutes,
+      },
+    ],
+  },
+  {
+    path: '/:resellerSlug',
+    element: <ProtectedRoute allowedRole="reseller" />,
+    children: [
+      {
+        element: <ResellerLayout />,
+        children: resellerSubRoutes,
+      },
+    ],
+  },
+];
+
+// Main App Router (localhost:5173 / app.domain.com)
+export const router = createBrowserRouter([
+  {
+    path: '/',
+    element: <Home />,
+  },
+  {
+    path: '/signup',
+    element: <Signup />,
+  },
+  ...commonAuthRoutes,
+  ...adminRoutes,
+  ...customerRoutes,
+  ...companyRoutes,
+  ...resellerRoutes,
+  {
+    path: '*',
+    element: <NotFoundPage />,
+  },
+]);
+
+// Reseller Subdomain Router (reseller.localhost:5173 / reseller.domain.com)
 export const resellerRouter = createBrowserRouter([
   // Public routes
   {
@@ -212,39 +264,12 @@ export const resellerRouter = createBrowserRouter([
     path: '/signup',
     element: <ResellerSignup />,
   },
-  ...commonRoutes,
+  ...commonAuthRoutes,
   {
     path: '/forgot-password',
     element: <ForgotPassword />,
   },
-  // Protected routes — must be logged in as reseller
-  {
-    element: <ProtectedRoute allowedRole="reseller" />,
-    children: [
-      {
-        element: <ResellerLayout />,
-        children: [
-          { path: '/dashboard',         element: <ResellerDashboard /> },
-          // Tenant Management
-          { path: '/companies',         element: <ResellerCompanies /> },
-          { path: '/tenant-billing',    element: <ResellerTenantBilling /> },
-          // Commercials & Packaging
-          { path: '/plan-builder',      element: <ResellerPlanBuilder /> },
-          { path: '/feature-limits',    element: <ResellerFeatureLimits /> },
-          { path: '/add-ons',           element: <ResellerAddOns /> },
-          // Configuration
-          { path: '/payment-gateways',  element: <ResellerPaymentGateways /> },
-          { path: '/communications',    element: <ResellerCommunications /> },
-          { path: '/white-label',       element: <ResellerWhiteLabel /> },
-          // Administration
-          { path: '/staff-roles',       element: <ResellerStaffRoles /> },
-          { path: '/support-tickets',   element: <ResellerSupportTickets /> },
-          { path: '/reports',           element: <ResellerReports /> },
-          { path: '/api-integrations',  element: <ResellerApiIntegrations /> },
-        ],
-      },
-    ],
-  },
+  ...resellerRoutes,
   {
     path: '*',
     element: <NotFoundPage />,
@@ -265,11 +290,12 @@ export const companyRouter = createBrowserRouter([
     path: '/signup',
     element: <CompanySignup />,
   },
-  ...commonRoutes,
+  ...commonAuthRoutes,
   {
     path: '/forgot-password',
     element: <ForgotPassword />,
   },
+  ...companyRoutes,
   {
     path: '*',
     element: <NotFoundPage />,

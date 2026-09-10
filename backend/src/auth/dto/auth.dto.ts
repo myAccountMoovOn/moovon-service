@@ -10,6 +10,11 @@ export class LoginDto {
   @IsString()
   @MinLength(6)
   password: string;
+
+  @ApiProperty({ example: 'main', required: false })
+  @IsOptional()
+  @IsString()
+  portal?: string;
 }
 
 export class RefreshTokenDto {
@@ -66,6 +71,11 @@ export class OtpVerifyDto {
   @ApiProperty({ example: '123456' })
   @IsString()
   token: string;
+
+  @ApiProperty({ example: 'main', required: false })
+  @IsOptional()
+  @IsString()
+  portal?: string;
 }
 
 export class ForgotPasswordDto {
@@ -162,25 +172,4 @@ export class RegisterCustomerDto {
   @ApiProperty()
   @IsString()
   phone: string;
-}
-
-export class ForgotPasswordDto {
-  @ApiProperty()
-  @IsEmail()
-  email: string;
-}
-
-export class ResetPasswordDto {
-  @ApiProperty()
-  @IsEmail()
-  email: string;
-
-  @ApiProperty()
-  @IsString()
-  token: string;
-
-  @ApiProperty()
-  @IsString()
-  @MinLength(6)
-  newPassword: string;
 }

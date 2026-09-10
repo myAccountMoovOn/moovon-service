@@ -143,7 +143,8 @@ export const BillJiNavbar: React.FC<BillJiNavbarProps> = ({ onLoginClick, hideLo
             type="default"
             style={{
               borderColor: '#E4EAF2',
-              color: '#334155',
+              color: 'white',
+              backgroundColor:'green',
               fontWeight: 500,
               borderRadius: '6px',
             }}
@@ -160,7 +161,8 @@ export const BillJiNavbar: React.FC<BillJiNavbarProps> = ({ onLoginClick, hideLo
             type="default"
             style={{
               borderColor: '#E4EAF2',
-              color: '#334155',
+              color: 'white',
+              backgroundColor:"blue",
               fontWeight: 500,
               borderRadius: '6px',
             }}

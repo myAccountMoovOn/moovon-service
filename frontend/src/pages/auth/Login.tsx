@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { getCompanySlug } from '../../utils/slug';
 import BillJiHomeLoginPage from './BillJiHomeLoginPage';
 import LoginCard from '../../components/auth/LoginCard';
 import BillJiNavbar from '../../components/layout/BillJiNavbar';
@@ -11,18 +12,15 @@ const Login: React.FC = () => {
 
   // If already logged in, redirect based on role — but respect the current subdomain
   if (!isLoading && user) {
-    const redirectTarget = role === 'admin' ? '/admin/dashboard' : (role === 'company' ? '/company/dashboard' : '/customer/dashboard');
-    return <Navigate to={redirectTarget} replace />;
-    const isResellerDomain = window.location.hostname.startsWith('reseller.');
-    const isCompanyDomain = window.location.hostname.startsWith('company.');
-
-    if (isResellerDomain || isCompanyDomain) {
-      // On reseller/company subdomains, only /dashboard exists — always go there
-      return <Navigate to="/dashboard" replace />;
-    }
-
     if (role === 'admin') return <Navigate to="/admin/dashboard" replace />;
-    if (role === 'reseller' || role === 'provider') return <Navigate to="/dashboard" replace />;
+    if (role === 'company' || role === 'provider') {
+      const companySlug = getCompanySlug(user);
+      return <Navigate to={`/${companySlug}/dashboard`} replace />;
+    }
+    if (role === 'reseller') {
+      const resellerSlug = getCompanySlug(user);
+      return <Navigate to={`/${resellerSlug}/dashboard`} replace />;
+    }
     return <Navigate to="/customer/dashboard" replace />;
   }
 
