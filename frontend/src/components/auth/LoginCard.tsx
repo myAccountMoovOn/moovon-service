@@ -42,6 +42,14 @@ export const LoginCard: React.FC = () => {
         // Direct session response if OTP disabled
         const session = res.data?.data?.session || res.data?.session;
         const backendUser = res.data?.data?.user || res.data?.user;
+        const rawRole = (backendUser?.role || 'customer').toString().toLowerCase();
+        
+        let mappedRole: 'admin' | 'company' | 'customer' = 'customer';
+        if (rawRole === 'super_admin') {
+          mappedRole = 'admin';
+        } else if (rawRole === 'provider' || rawRole === 'company' || rawRole === 'reseller' || rawRole === 'admin' || window.location.hostname.startsWith('company.')) {
+          mappedRole = 'company';
+        }
 
         // FIX 1: Preserve the real role — reseller stays 'reseller', not mapped to 'admin'
         const rawRole = backendUser?.role || 'customer';
@@ -65,6 +73,9 @@ export const LoginCard: React.FC = () => {
             console.warn('Supabase setSession warning:', e);
           }
         }
+        
+        const redirectTarget = mappedRole === 'admin' ? '/admin/dashboard' : (mappedRole === 'company' ? '/company/dashboard' : '/customer/dashboard');
+        navigate(redirectTarget, { replace: true });
 
         // FIX 2: Subdomain-aware redirect — reseller domain always goes to /dashboard
         // FIX 3: No early navigate() — Login.tsx watches auth state and handles redirect
@@ -99,6 +110,14 @@ export const LoginCard: React.FC = () => {
       });
 
       const { session, user: backendUser } = res.data?.data || res.data || {};
+      const rawRole = (backendUser?.role || 'customer').toString().toLowerCase();
+
+      let mappedRole: 'admin' | 'company' | 'customer' = 'customer';
+      if (rawRole === 'super_admin') {
+        mappedRole = 'admin';
+      } else if (rawRole === 'provider' || rawRole === 'company' || rawRole === 'reseller' || rawRole === 'admin' || window.location.hostname.startsWith('company.')) {
+        mappedRole = 'company';
+      }
       const rawRole = backendUser?.role || 'customer';
 
       // FIX 1: Preserve the real role
@@ -123,6 +142,8 @@ export const LoginCard: React.FC = () => {
         }
       }
 
+      const redirectTarget = mappedRole === 'admin' ? '/admin/dashboard' : (mappedRole === 'company' ? '/company/dashboard' : '/customer/dashboard');
+      navigate(redirectTarget, { replace: true });
       // FIX 2: Subdomain-aware redirect
       const isResellerDomain = window.location.hostname.startsWith('reseller.');
       const isCompanyDomain = window.location.hostname.startsWith('company.');

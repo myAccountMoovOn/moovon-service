@@ -80,6 +80,18 @@ export class AuthController {
     return this.authService.changePassword(user.id, dto.newPassword);
   }
 
+  @ApiOperation({ summary: 'Request Password Reset OTP' })
+  @Post('forgot-password')
+  forgotPassword(@Body() dto: import('./dto/auth.dto').ForgotPasswordDto) {
+    return this.authService.forgotPassword(dto.email);
+  }
+
+  @ApiOperation({ summary: 'Verify OTP and Reset Password' })
+  @Post('reset-password')
+  resetPassword(@Body() dto: import('./dto/auth.dto').ResetPasswordDto) {
+    return this.authService.resetPassword(dto);
+  }
+
   @ApiOperation({ summary: 'Request Login OTP via Email' })
   @Post('request-otp')
   requestOtp(@Body() dto: import('./dto/auth.dto').OtpRequestDto) {

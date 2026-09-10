@@ -1,9 +1,10 @@
 import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth, type UserAppRole } from '../context/AuthContext';
 import { Spin } from 'antd';
 
 interface ProtectedRouteProps {
+  allowedRole?: UserAppRole;
   allowedRole?: 'admin' | 'customer' | 'reseller';
 }
 
@@ -22,6 +23,21 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRole }) =
     return <Navigate to="/login" replace />;
   }
 
+  if (allowedRole) {
+    // Super Admin has universal access
+    if (role === 'admin') {
+      return <Outlet />;
+    }
+
+    // Company user trying to access Super Admin route (/admin) -> Strictly redirect to /company/dashboard
+    if (allowedRole === 'admin' && role !== 'admin') {
+      return <Navigate to="/company/dashboard" replace />;
+    }
+
+    // Direct role mismatch
+    if (role !== allowedRole) {
+      return <Navigate to={`/${role}/dashboard`} replace />;
+    }
   if (allowedRole && role !== allowedRole) {
     const isResellerDomain = window.location.hostname.startsWith('reseller.');
     const isCompanyDomain = window.location.hostname.startsWith('company.');

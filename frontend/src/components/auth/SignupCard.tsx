@@ -64,9 +64,10 @@ export const SignupCard: React.FC = () => {
     setError(null);
     setSuccess(null);
     try {
+      const otpValue = typeof values.otp === 'string' ? values.otp : (values.otp?.join('') || values.otp);
       await axios.post(`${API_URL}/auth/register-verify`, {
         email,
-        token: values.otp,
+        token: otpValue,
       });
 
       // Store user signup details locally fallback

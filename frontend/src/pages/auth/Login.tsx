@@ -11,6 +11,8 @@ const Login: React.FC = () => {
 
   // If already logged in, redirect based on role — but respect the current subdomain
   if (!isLoading && user) {
+    const redirectTarget = role === 'admin' ? '/admin/dashboard' : (role === 'company' ? '/company/dashboard' : '/customer/dashboard');
+    return <Navigate to={redirectTarget} replace />;
     const isResellerDomain = window.location.hostname.startsWith('reseller.');
     const isCompanyDomain = window.location.hostname.startsWith('company.');
 

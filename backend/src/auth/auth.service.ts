@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, Logger, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, Logger, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -19,6 +19,9 @@ export class AuthService {
   // Custom in-memory cache for 2FA OTPs
   private otpCache = new Map<string, { otp: string, session: any, expiresAt: number }>();
   
+  // Custom in-memory cache for Forgot Password Flow
+  private forgotPasswordCache = new Map<string, { otp: string; expiresAt: number }>();
+
   // Custom in-memory cache for Signup Flow
   private signupCache = new Map<string, { 
     otp: string, 
@@ -290,6 +293,78 @@ export class AuthService {
     };
   }
 
+  async forgotPassword(email: string) {
+    this.logger.log(`Requesting Forgot Password OTP for ${email}`);
+    
+    // Check if user exists in Supabase
+    const { data: { users }, error } = await this.supabaseAdmin.auth.admin.listUsers({
+      page: 1,
+      perPage: 1000,
+    });
+    
+    if (error || !users) {
+      throw new InternalServerErrorException('Error validating account');
+    }
+
+    const user = users.find(u => u.email?.toLowerCase() === email.toLowerCase());
+    if (!user) {
+      throw new NotFoundException('No account found with this email address.');
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+    this.forgotPasswordCache.set(email.toLowerCase(), { otp, expiresAt });
+    this.logger.log(`🔑 [FORGOT PASSWORD OTP] Email: ${email} | Code: ${otp}`);
+
+    await this.sendCustomEmailOtp(email, otp);
+
+    return { message: 'Password reset OTP code sent to your email.' };
+  }
+
+  async resetPassword(dto: import('./dto/auth.dto').ResetPasswordDto) {
+    const emailKey = dto.email.toLowerCase();
+    const cached = this.forgotPasswordCache.get(emailKey);
+
+    if (!cached) {
+      throw new UnauthorizedException('No pending password reset request found for this email.');
+    }
+
+    if (Date.now() > cached.expiresAt) {
+      this.forgotPasswordCache.delete(emailKey);
+      throw new UnauthorizedException('OTP has expired. Please request a new password reset.');
+    }
+
+    if (cached.otp !== dto.token) {
+      throw new UnauthorizedException('Invalid OTP verification code.');
+    }
+
+    // OTP is valid, locate user in Supabase
+    const { data: { users } } = await this.supabaseAdmin.auth.admin.listUsers({
+      page: 1,
+      perPage: 1000,
+    });
+    const user = users?.find(u => u.email?.toLowerCase() === emailKey);
+
+    if (!user) {
+      throw new NotFoundException('User account not found.');
+    }
+
+    const { error: updateError } = await this.supabaseAdmin.auth.admin.updateUserById(
+      user.id,
+      { password: dto.newPassword },
+    );
+
+    if (updateError) {
+      throw new InternalServerErrorException(`Failed to update password: ${updateError.message}`);
+    }
+
+    this.forgotPasswordCache.delete(emailKey);
+    this.logger.log(`🎉 Password reset completed for ${dto.email}`);
+
+    return { message: 'Password reset successfully. You can now login with your new password.' };
+  }
+
   // Internal actual registration logic (now private or kept public for testing, but typically only called by verifySignup)
   async registerReseller(dto: import('./dto/auth.dto').RegisterResellerDto) {
     const userId = await this.createSupabaseUser(dto.email, dto.password, UserRole.RESELLER);
@@ -507,11 +582,15 @@ export class AuthService {
 
   async sendCustomEmailOtp(email: string, otp: string, companyId?: string | null) {
     this.logger.log(`Requesting Custom SMTP OTP for ${email}`);
+    this.logger.log(`🔑 [OTP GENERATED] Email: ${email} | Code: ${otp}`);
     
     let host = this.configService.get<string>('SMTP_HOST') || 'smtp.gmail.com';
     let port = parseInt(this.configService.get<string>('SMTP_PORT') || '587', 10);
     let user = this.configService.get<string>('SMTP_USER');
     let pass = this.configService.get<string>('SMTP_PASS');
+    if (pass) {
+      pass = pass.replace(/\s+/g, '');
+    }
     let from = this.configService.get<string>('SMTP_FROM') || `"Moovon Admin" <${user}>`;
     let companyConfig = null;
 
