@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../api/supabaseClient';
+import { getCompanySlug } from '../../utils/slug';
 
 const API_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1';
 
@@ -20,8 +21,11 @@ export const LoginCard: React.FC = () => {
   const [form] = Form.useForm();
 
   const hostname = window.location.hostname;
-  const isReseller = hostname.startsWith('reseller.');
-  const primaryColor = isReseller ? '#16A34A' : '#155EEF';
+  const isResellerDomain = hostname.startsWith('reseller.');
+  const isReseller = isResellerDomain;
+  const isCompanyDomain = hostname.startsWith('company.');
+  const portal = isResellerDomain ? 'reseller' : (isCompanyDomain ? 'company' : 'main');
+  const primaryColor = isResellerDomain ? '#16A34A' : '#155EEF';
 
   // Handlers for Login Submit
   const handleLoginSubmit = async (values: any) => {
@@ -32,6 +36,7 @@ export const LoginCard: React.FC = () => {
       const res = await axios.post(`${API_URL}/auth/login`, {
         email: values.email,
         password: values.password,
+        portal,
       });
 
       if (res.data?.data?.requireOtp || res.data?.requireOtp) {
@@ -44,20 +49,14 @@ export const LoginCard: React.FC = () => {
         const backendUser = res.data?.data?.user || res.data?.user;
         const rawRole = (backendUser?.role || 'customer').toString().toLowerCase();
         
-        let mappedRole: 'admin' | 'company' | 'customer' = 'customer';
-        if (rawRole === 'super_admin') {
+        let mappedRole: 'admin' | 'company' | 'customer' | 'reseller' | 'provider' = 'customer';
+        if (rawRole === 'super_admin' || rawRole === 'admin') {
           mappedRole = 'admin';
-        } else if (rawRole === 'provider' || rawRole === 'company' || rawRole === 'reseller' || rawRole === 'admin' || window.location.hostname.startsWith('company.')) {
+        } else if (rawRole === 'reseller') {
+          mappedRole = 'reseller';
+        } else if (rawRole === 'provider' || rawRole === 'company' || isCompanyDomain) {
           mappedRole = 'company';
         }
-
-        // FIX 1: Preserve the real role — reseller stays 'reseller', not mapped to 'admin'
-        const rawRole = backendUser?.role || 'customer';
-        const mappedRole = (['provider', 'super_admin', 'admin'].includes(rawRole)
-          ? 'admin'
-          : rawRole === 'reseller'
-            ? 'reseller'
-            : 'customer') as 'admin' | 'customer' | 'reseller';
 
         if (backendUser) {
           setFallbackUser(backendUser, mappedRole, session);
@@ -74,17 +73,12 @@ export const LoginCard: React.FC = () => {
           }
         }
         
-        const redirectTarget = mappedRole === 'admin' ? '/admin/dashboard' : (mappedRole === 'company' ? '/company/dashboard' : '/customer/dashboard');
-        navigate(redirectTarget, { replace: true });
+        const userSlug = getCompanySlug(backendUser);
 
-        // FIX 2: Subdomain-aware redirect — reseller domain always goes to /dashboard
-        // FIX 3: No early navigate() — Login.tsx watches auth state and handles redirect
-        //         reactively, avoiding the race condition where ProtectedRoute
-        //         checks user before setFallbackUser state has settled.
-        const isResellerDomain = window.location.hostname.startsWith('reseller.');
-        const isCompanyDomain = window.location.hostname.startsWith('company.');
-        if (isResellerDomain || isCompanyDomain) {
-          navigate('/dashboard', { replace: true });
+        if (mappedRole === 'company' || isCompanyDomain) {
+          navigate(`/${userSlug}/dashboard`, { replace: true });
+        } else if (isResellerDomain || mappedRole === 'reseller') {
+          navigate(`/${userSlug}/dashboard`, { replace: true });
         } else if (mappedRole === 'admin') {
           navigate('/admin/dashboard', { replace: true });
         } else {
@@ -107,25 +101,20 @@ export const LoginCard: React.FC = () => {
       const res = await axios.post(`${API_URL}/auth/verify-otp`, {
         email,
         token: typeof values.otp === 'string' ? values.otp.trim() : values.otp,
+        portal,
       });
 
       const { session, user: backendUser } = res.data?.data || res.data || {};
       const rawRole = (backendUser?.role || 'customer').toString().toLowerCase();
 
-      let mappedRole: 'admin' | 'company' | 'customer' = 'customer';
-      if (rawRole === 'super_admin') {
+      let mappedRole: 'admin' | 'company' | 'customer' | 'reseller' | 'provider' = 'customer';
+      if (rawRole === 'super_admin' || rawRole === 'admin') {
         mappedRole = 'admin';
-      } else if (rawRole === 'provider' || rawRole === 'company' || rawRole === 'reseller' || rawRole === 'admin' || window.location.hostname.startsWith('company.')) {
+      } else if (rawRole === 'reseller') {
+        mappedRole = 'reseller';
+      } else if (rawRole === 'provider' || rawRole === 'company' || isCompanyDomain) {
         mappedRole = 'company';
       }
-      const rawRole = backendUser?.role || 'customer';
-
-      // FIX 1: Preserve the real role
-      const mappedRole = (['provider', 'super_admin', 'admin'].includes(rawRole)
-        ? 'admin'
-        : rawRole === 'reseller'
-          ? 'reseller'
-          : 'customer') as 'admin' | 'customer' | 'reseller';
 
       if (backendUser) {
         setFallbackUser(backendUser, mappedRole, session);
@@ -142,13 +131,12 @@ export const LoginCard: React.FC = () => {
         }
       }
 
-      const redirectTarget = mappedRole === 'admin' ? '/admin/dashboard' : (mappedRole === 'company' ? '/company/dashboard' : '/customer/dashboard');
-      navigate(redirectTarget, { replace: true });
-      // FIX 2: Subdomain-aware redirect
-      const isResellerDomain = window.location.hostname.startsWith('reseller.');
-      const isCompanyDomain = window.location.hostname.startsWith('company.');
-      if (isResellerDomain || isCompanyDomain) {
-        navigate('/dashboard', { replace: true });
+      const userSlug = getCompanySlug(backendUser);
+
+      if (mappedRole === 'company' || isCompanyDomain) {
+        navigate(`/${userSlug}/dashboard`, { replace: true });
+      } else if (isResellerDomain || mappedRole === 'reseller') {
+        navigate(`/${userSlug}/dashboard`, { replace: true });
       } else if (mappedRole === 'admin') {
         navigate('/admin/dashboard', { replace: true });
       } else {

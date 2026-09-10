@@ -34,9 +34,10 @@ import {
   BankOutlined,
   SettingOutlined,
 } from '@ant-design/icons';
-import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { Outlet, useNavigate, useLocation, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useBranding } from '../context/BrandingContext';
+import { getCompanySlug } from '../utils/slug';
 
 const { Header, Sider, Content } = Layout;
 const { Title, Text } = Typography;
@@ -48,8 +49,12 @@ const CompanyLayout: React.FC = () => {
   const screens = useBreakpoint();
   const navigate = useNavigate();
   const location = useLocation();
+  const { companySlug: urlSlug } = useParams<{ companySlug?: string }>();
   const { user, signOut } = useAuth();
   const { branding, isLoadingBranding } = useBranding();
+
+  const activeSlug = urlSlug || getCompanySlug(user);
+  const currentPrefix = `/${activeSlug}`;
 
   const isMobile = !screens.lg;
 
@@ -60,17 +65,17 @@ const CompanyLayout: React.FC = () => {
 
   // Structured Company Sidebar items grouped into sub-menus
   const menuItems = [
-    { key: '/company/dashboard', icon: <DashboardOutlined />, label: 'Dashboard' },
+    { key: `${currentPrefix}/dashboard`, icon: <DashboardOutlined />, label: 'Dashboard' },
     
     {
       key: 'sub-sales',
       icon: <ShoppingCartOutlined />,
       label: 'Sales & CRM',
       children: [
-        { key: '/company/crm', icon: <UsergroupAddOutlined />, label: 'CRM & Leads' },
-        { key: '/company/customers', icon: <TeamOutlined />, label: 'Customers' },
-        { key: '/company/sales', icon: <DollarOutlined />, label: 'Sales' },
-        { key: '/company/billing', icon: <FileTextOutlined />, label: 'Billing & Invoicing' },
+        { key: `${currentPrefix}/crm`, icon: <UsergroupAddOutlined />, label: 'CRM & Leads' },
+        { key: `${currentPrefix}/customers`, icon: <TeamOutlined />, label: 'Customers' },
+        { key: `${currentPrefix}/sales`, icon: <DollarOutlined />, label: 'Sales' },
+        { key: `${currentPrefix}/billing`, icon: <FileTextOutlined />, label: 'Billing & Invoicing' },
       ],
     },
 
@@ -79,10 +84,10 @@ const CompanyLayout: React.FC = () => {
       icon: <InboxOutlined />,
       label: 'Products & Inventory',
       children: [
-        { key: '/company/products', icon: <ShoppingOutlined />, label: 'Products' },
-        { key: '/company/services', icon: <AppstoreOutlined />, label: 'Services' },
-        { key: '/company/inventory', icon: <DatabaseOutlined />, label: 'Inventory' },
-        { key: '/company/purchase', icon: <FileTextOutlined />, label: 'Purchase' },
+        { key: `${currentPrefix}/products`, icon: <ShoppingOutlined />, label: 'Products' },
+        { key: `${currentPrefix}/services`, icon: <AppstoreOutlined />, label: 'Services' },
+        { key: `${currentPrefix}/inventory`, icon: <DatabaseOutlined />, label: 'Inventory' },
+        { key: `${currentPrefix}/purchase`, icon: <FileTextOutlined />, label: 'Purchase' },
       ],
     },
 
@@ -91,9 +96,9 @@ const CompanyLayout: React.FC = () => {
       icon: <AccountBookOutlined />,
       label: 'Finance & Accounting',
       children: [
-        { key: '/company/accounts', icon: <AccountBookOutlined />, label: 'Accounts & Ledger' },
-        { key: '/company/gst-tax', icon: <AuditOutlined />, label: 'GST / Tax' },
-        { key: '/company/expenses', icon: <PayCircleOutlined />, label: 'Expenses' },
+        { key: `${currentPrefix}/accounts`, icon: <AccountBookOutlined />, label: 'Accounts & Ledger' },
+        { key: `${currentPrefix}/gst-tax`, icon: <AuditOutlined />, label: 'GST / Tax' },
+        { key: `${currentPrefix}/expenses`, icon: <PayCircleOutlined />, label: 'Expenses' },
       ],
     },
 
@@ -102,11 +107,11 @@ const CompanyLayout: React.FC = () => {
       icon: <ToolOutlined />,
       label: 'Contracts & Field Ops',
       children: [
-        { key: '/company/amc', icon: <FieldTimeOutlined />, label: 'AMC Contracts' },
-        { key: '/company/subscriptions', icon: <FileSyncOutlined />, label: 'Subscriptions' },
-        { key: '/company/service-jobs', icon: <ToolOutlined />, label: 'Service Jobs' },
-        { key: '/company/field-staff', icon: <CarOutlined />, label: 'Field Staff' },
-        { key: '/company/assets', icon: <AppstoreOutlined />, label: 'Assets Management' },
+        { key: `${currentPrefix}/amc`, icon: <FieldTimeOutlined />, label: 'AMC Contracts' },
+        { key: `${currentPrefix}/subscriptions`, icon: <FileSyncOutlined />, label: 'Subscriptions' },
+        { key: `${currentPrefix}/service-jobs`, icon: <ToolOutlined />, label: 'Service Jobs' },
+        { key: `${currentPrefix}/field-staff`, icon: <CarOutlined />, label: 'Field Staff' },
+        { key: `${currentPrefix}/assets`, icon: <AppstoreOutlined />, label: 'Assets Management' },
       ],
     },
 
@@ -115,9 +120,9 @@ const CompanyLayout: React.FC = () => {
       icon: <TeamOutlined />,
       label: 'HR & Support',
       children: [
-        { key: '/company/hrms', icon: <UserOutlined />, label: 'HRMS & Payroll' },
-        { key: '/company/support-tickets', icon: <CustomerServiceOutlined />, label: 'Support & Tickets' },
-        { key: '/company/tasks-projects', icon: <ProjectOutlined />, label: 'Tasks & Projects' },
+        { key: `${currentPrefix}/hrms`, icon: <UserOutlined />, label: 'HRMS & Payroll' },
+        { key: `${currentPrefix}/support-tickets`, icon: <CustomerServiceOutlined />, label: 'Support & Tickets' },
+        { key: `${currentPrefix}/tasks-projects`, icon: <ProjectOutlined />, label: 'Tasks & Projects' },
       ],
     },
 
@@ -126,9 +131,9 @@ const CompanyLayout: React.FC = () => {
       icon: <NotificationOutlined />,
       label: 'Marketing & Automation',
       children: [
-        { key: '/company/marketing', icon: <NotificationOutlined />, label: 'Marketing' },
-        { key: '/company/automation', icon: <RobotOutlined />, label: 'Automation Engine' },
-        { key: '/company/documents', icon: <FolderOpenOutlined />, label: 'Documents' },
+        { key: `${currentPrefix}/marketing`, icon: <NotificationOutlined />, label: 'Marketing' },
+        { key: `${currentPrefix}/automation`, icon: <RobotOutlined />, label: 'Automation Engine' },
+        { key: `${currentPrefix}/documents`, icon: <FolderOpenOutlined />, label: 'Documents' },
       ],
     },
 
@@ -137,10 +142,10 @@ const CompanyLayout: React.FC = () => {
       icon: <SettingOutlined />,
       label: 'Analytics & Settings',
       children: [
-        { key: '/company/reports', icon: <BarChartOutlined />, label: 'Reports & Analytics' },
-        { key: '/company/branches', icon: <ClusterOutlined />, label: 'Branches' },
-        { key: '/company/api-webhooks', icon: <ApiOutlined />, label: 'API & Webhooks' },
-        { key: '/company/brand-settings', icon: <BgColorsOutlined />, label: 'White-Label Branding' },
+        { key: `${currentPrefix}/reports`, icon: <BarChartOutlined />, label: 'Reports & Analytics' },
+        { key: `${currentPrefix}/branches`, icon: <ClusterOutlined />, label: 'Branches' },
+        { key: `${currentPrefix}/api-webhooks`, icon: <ApiOutlined />, label: 'API & Webhooks' },
+        { key: `${currentPrefix}/brand-settings`, icon: <BgColorsOutlined />, label: 'White-Label Branding' },
       ],
     },
   ];
@@ -151,7 +156,7 @@ const CompanyLayout: React.FC = () => {
         key: 'profile',
         icon: <UserOutlined />,
         label: 'Company Profile & Settings',
-        onClick: () => navigate('/company/brand-settings'),
+        onClick: () => navigate(`${currentPrefix}/brand-settings`),
       },
       {
         key: 'logout',

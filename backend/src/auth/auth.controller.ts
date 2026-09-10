@@ -14,7 +14,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Login with email and password' })
   @Post('login')
   login(@Body() dto: LoginDto) {
-    return this.authService.login(dto.email, dto.password);
+    return this.authService.login(dto.email, dto.password, dto.portal);
   }
 
   @ApiOperation({ summary: 'Register a new Provider/Company Step 1 (Sends OTP)' })
@@ -103,18 +103,6 @@ export class AuthController {
   @ApiOperation({ summary: 'Verify Email OTP and Login' })
   @Post('verify-otp')
   verifyOtp(@Body() dto: import('./dto/auth.dto').OtpVerifyDto) {
-    return this.authService.verifyOtp(dto.email, dto.token);
-  }
-
-  @ApiOperation({ summary: 'Request Password Reset OTP' })
-  @Post('forgot-password')
-  forgotPassword(@Body() dto: import('./dto/auth.dto').ForgotPasswordDto) {
-    return this.authService.forgotPasswordStep1(dto.email);
-  }
-
-  @ApiOperation({ summary: 'Verify OTP and Reset Password' })
-  @Post('reset-password')
-  resetPassword(@Body() dto: import('./dto/auth.dto').ResetPasswordDto) {
-    return this.authService.forgotPasswordStep2(dto);
+    return this.authService.verifyOtp(dto.email, dto.token, dto.portal);
   }
 }

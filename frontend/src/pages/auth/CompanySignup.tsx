@@ -1,7 +1,5 @@
-import React, { useState } from 'react';
-import { Form, Input, Button, Card, Typography, Steps, message, Upload, Result, Alert } from 'antd';
 import React, { useState, useEffect } from 'react';
-import { Form, Input, Button, Card, Typography, Steps, message, Upload, Result } from 'antd';
+import { Form, Input, Button, Card, Typography, Steps, message, Upload, Result, Alert } from 'antd';
 import { UserOutlined, MailOutlined, LockOutlined, BankOutlined, PhoneOutlined, GlobalOutlined, UploadOutlined, SafetyCertificateOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -21,7 +19,6 @@ const CompanySignup: React.FC = () => {
   const [otpForm] = Form.useForm();
   const navigate = useNavigate();
   const [userEmail, setUserEmail] = useState('');
-  const [loading, setLoading] = useState(false);
   const [countdown, setCountdown] = useState(0);
 
   useEffect(() => {
@@ -50,25 +47,7 @@ const CompanySignup: React.FC = () => {
     setCurrentStep(0);
   };
 
-  const onFinish = async (values: any) => {
-    setLoading(true);
-    setError(null);
-    setSuccess(null);
-    try {
-      await axios.post(`${API_URL}/auth/register-provider-step1`, {
-        email: values.email,
-        password: values.password,
-        companyName: values.companyName,
-        address: values.address || '',
-        phone: values.contact || '',
-        domain: values.domain || '',
-      });
 
-      setUserEmail(values.email);
-      setSuccess(`Verification OTP code sent to ${values.email}`);
-      setCurrentStep(2); // Go to OTP step
-    } catch (err: any) {
-      setError(err.response?.data?.message || err.message || 'Registration failed. Please check your inputs.');
   const handleSendOtp = async (values: any) => {
     try {
       setLoading(true);
@@ -97,43 +76,7 @@ const CompanySignup: React.FC = () => {
     }
   };
 
-  const onFinishOtp = async (values: any) => {
-    setLoading(true);
-    setError(null);
-    setSuccess(null);
-    try {
-      const otpValue = typeof values.otp === 'string' ? values.otp : (values.otp?.join('') || '');
-      await axios.post(`${API_URL}/auth/register-verify`, {
-        email: userEmail,
-        token: otpValue,
-      });
 
-      message.success('Email verified & Company registered successfully!');
-      setCurrentStep(3); // Go to Success
-    } catch (err: any) {
-      setError(err.response?.data?.message || err.message || 'Invalid or expired OTP code. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleResendOtp = async () => {
-    if (!userEmail) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const values = form.getFieldsValue();
-      await axios.post(`${API_URL}/auth/register-provider-step1`, {
-        email: userEmail,
-        password: values.password,
-        companyName: values.companyName,
-        address: values.address || '',
-        phone: values.contact || '',
-        domain: values.domain || '',
-      });
-      message.success(`A new verification OTP code was sent to ${userEmail}`);
-    } catch (err: any) {
-      message.error(err.response?.data?.message || 'Failed to resend OTP');
   const onFinish = async (values: any) => {
     await handleSendOtp(values);
   };
@@ -300,8 +243,6 @@ const CompanySignup: React.FC = () => {
 
                 <div style={{ textAlign: 'center' }}>
                   <Text type="secondary">Didn't receive the code? </Text>
-                  <Button type="link" style={{ padding: 0, color: '#1468E8' }} onClick={handleResendOtp}>
-                    Resend OTP
                   <Button 
                     type="link" 
                     disabled={countdown > 0} 

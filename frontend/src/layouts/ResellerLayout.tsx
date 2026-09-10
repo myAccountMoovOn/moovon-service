@@ -20,9 +20,10 @@ import {
   ShopOutlined,
   PlusSquareOutlined,
 } from '@ant-design/icons';
-import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { Outlet, useNavigate, useLocation, useParams } from 'react-router-dom';
 import BillJiLogo from '../components/common/BillJiLogo';
 import { useAuth } from '../context/AuthContext';
+import { getCompanySlug } from '../utils/slug';
 
 const { Header, Sider, Content } = Layout;
 
@@ -30,7 +31,11 @@ const ResellerLayout: React.FC = () => {
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { signOut } = useAuth();
+  const { resellerSlug: urlSlug } = useParams<{ resellerSlug?: string }>();
+  const { user, signOut } = useAuth();
+
+  const activeSlug = urlSlug || getCompanySlug(user);
+  const currentPrefix = `/${activeSlug}`;
 
   const handleLogout = async () => {
     await signOut(); // clears localStorage + calls supabase.auth.signOut()
@@ -47,7 +52,7 @@ const ResellerLayout: React.FC = () => {
 
   const menuItems = [
     {
-      key: '/dashboard',
+      key: `${currentPrefix}/dashboard`,
       icon: <DashboardOutlined />,
       label: 'Dashboard',
     },
@@ -56,8 +61,8 @@ const ResellerLayout: React.FC = () => {
       icon: <ShopOutlined />,
       label: 'Tenant Management',
       children: [
-        { key: '/companies', icon: <TeamOutlined />, label: 'Companies' },
-        { key: '/tenant-billing', icon: <CreditCardOutlined />, label: 'Subscriptions & Billing' },
+        { key: `${currentPrefix}/companies`, icon: <TeamOutlined />, label: 'Companies' },
+        { key: `${currentPrefix}/tenant-billing`, icon: <CreditCardOutlined />, label: 'Subscriptions & Billing' },
       ],
     },
     {
@@ -65,9 +70,9 @@ const ResellerLayout: React.FC = () => {
       icon: <AppstoreOutlined />,
       label: 'Commercials & Packaging',
       children: [
-        { key: '/plan-builder', icon: <BuildOutlined />, label: 'Plan Builder' },
-        { key: '/feature-limits', icon: <SafetyCertificateOutlined />, label: 'Feature Limits' },
-        { key: '/add-ons', icon: <PlusSquareOutlined />, label: 'Add-ons' },
+        { key: `${currentPrefix}/plan-builder`, icon: <BuildOutlined />, label: 'Plan Builder' },
+        { key: `${currentPrefix}/feature-limits`, icon: <SafetyCertificateOutlined />, label: 'Feature Limits' },
+        { key: `${currentPrefix}/add-ons`, icon: <PlusSquareOutlined />, label: 'Add-ons' },
       ],
     },
     {
@@ -75,9 +80,9 @@ const ResellerLayout: React.FC = () => {
       icon: <SettingOutlined />,
       label: 'Configuration',
       children: [
-        { key: '/payment-gateways', icon: <BankOutlined />, label: 'Payment Gateways' },
-        { key: '/communications', icon: <MailOutlined />, label: 'Communications' },
-        { key: '/white-label', icon: <GlobalOutlined />, label: 'White-Label Branding' },
+        { key: `${currentPrefix}/payment-gateways`, icon: <BankOutlined />, label: 'Payment Gateways' },
+        { key: `${currentPrefix}/communications`, icon: <MailOutlined />, label: 'Communications' },
+        { key: `${currentPrefix}/white-label`, icon: <GlobalOutlined />, label: 'White-Label Branding' },
       ],
     },
     {
@@ -85,20 +90,21 @@ const ResellerLayout: React.FC = () => {
       icon: <CustomerServiceOutlined />,
       label: 'Administration',
       children: [
-        { key: '/staff-roles', icon: <UserOutlined />, label: 'Staff & Roles' },
-        { key: '/support-tickets', icon: <CustomerServiceOutlined />, label: 'Support Tickets' },
-        { key: '/reports', icon: <BarChartOutlined />, label: 'Reports & Analytics' },
-        { key: '/api-integrations', icon: <ApiOutlined />, label: 'API & Integrations' },
+        { key: `${currentPrefix}/staff-roles`, icon: <UserOutlined />, label: 'Staff & Roles' },
+        { key: `${currentPrefix}/support-tickets`, icon: <CustomerServiceOutlined />, label: 'Support Tickets' },
+        { key: `${currentPrefix}/reports`, icon: <BarChartOutlined />, label: 'Reports & Analytics' },
+        { key: `${currentPrefix}/api-integrations`, icon: <ApiOutlined />, label: 'API & Integrations' },
       ],
     },
   ];
 
   // Determine which group key should be open based on current path
   const openKeys = (() => {
-    if (['/companies', '/tenant-billing'].includes(location.pathname)) return ['tenant-management'];
-    if (['/plan-builder', '/feature-limits', '/add-ons'].includes(location.pathname)) return ['commercials'];
-    if (['/payment-gateways', '/communications', '/white-label'].includes(location.pathname)) return ['configuration'];
-    if (['/staff-roles', '/support-tickets', '/reports', '/api-integrations'].includes(location.pathname)) return ['administration'];
+    const path = location.pathname;
+    if (path.includes('/companies') || path.includes('/tenant-billing')) return ['tenant-management'];
+    if (path.includes('/plan-builder') || path.includes('/feature-limits') || path.includes('/add-ons')) return ['commercials'];
+    if (path.includes('/payment-gateways') || path.includes('/communications') || path.includes('/white-label')) return ['configuration'];
+    if (path.includes('/staff-roles') || path.includes('/support-tickets') || path.includes('/reports') || path.includes('/api-integrations')) return ['administration'];
     return [];
   })();
 
