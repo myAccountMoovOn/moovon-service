@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Form, Input, Button, Card, Typography, message, Row, Col, Grid } from 'antd';
 import { UserOutlined, PhoneOutlined, LockOutlined, EnvironmentOutlined, BankOutlined, MailOutlined } from '@ant-design/icons';
 import axiosInstance from '../../api/axiosInstance';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth, getStorageKey } from '../../context/AuthContext';
 
 const { Title, Text } = Typography;
 
@@ -24,7 +24,7 @@ const Profile: React.FC = () => {
     setLoading(true);
 
     // 1. Load initial fallback details from localStorage / session
-    const storedUserStr = localStorage.getItem('moovon_user');
+    const storedUserStr = localStorage.getItem(getStorageKey('user'));
     let fallbackObj: any = user || {};
     if (storedUserStr) {
       try {
@@ -61,7 +61,7 @@ const Profile: React.FC = () => {
 
       // Cache merged details in localStorage so they persist across refreshes
       const updatedUser = { ...fallbackObj, ...mergedValues };
-      localStorage.setItem('moovon_user', JSON.stringify(updatedUser));
+      localStorage.setItem(getStorageKey('user'), JSON.stringify(updatedUser));
     } catch (err) {
       // Keep pre-filled local values cleanly if offline or dev backend is disconnected
     } finally {
@@ -87,11 +87,11 @@ const Profile: React.FC = () => {
 
       form.setFieldsValue(updatedFields);
 
-      const storedUserStr = localStorage.getItem('moovon_user');
-      if (storedUserStr) {
-        try {
-          const parsed = JSON.parse(storedUserStr);
-          localStorage.setItem('moovon_user', JSON.stringify({ ...parsed, ...updatedFields }));
+      const storedUserStr = localStorage.getItem(getStorageKey('user'));
+        if (storedUserStr) {
+          try {
+            const parsed = JSON.parse(storedUserStr);
+            localStorage.setItem(getStorageKey('user'), JSON.stringify({ ...parsed, ...updatedFields }));
         } catch (e) {}
       }
     } catch (err: any) {

@@ -3,7 +3,7 @@ import { Form, Input, Button, Typography, Alert, Tabs, Row, Col } from 'antd';
 import { MailOutlined, LockOutlined, UserOutlined, PhoneOutlined, ArrowRightOutlined, XOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { useAuth } from '../context/AuthContext';
+import { useAuth, getStorageKey } from '../context/AuthContext';
 import { supabase } from '../api/supabaseClient';
 
 const { Title, Text } = Typography;
@@ -136,7 +136,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialTa
         phone: signupPhone,
         role: 'customer',
       };
-      localStorage.setItem('moovon_user', JSON.stringify(newUser));
+      localStorage.setItem(getStorageKey('user'), JSON.stringify(newUser));
 
       setActiveTab('login');
       setSignupStep(0);

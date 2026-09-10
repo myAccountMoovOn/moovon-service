@@ -212,9 +212,7 @@ const CompanySignup: React.FC = () => {
                   name="otp"
                   rules={[{ required: true, message: 'Please input the OTP!' }, { len: 6, message: 'OTP must be 6 digits' }]}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'center' }}>
-                    <Input.OTP length={6} size="large" />
-                  </div>
+                  <Input.OTP length={6} size="large" style={{ display: 'flex', justifyContent: 'center' }} />
                 </Form.Item>
 
                 <Form.Item>

@@ -93,4 +93,16 @@ export class AuthController {
   verifyOtp(@Body() dto: import('./dto/auth.dto').OtpVerifyDto) {
     return this.authService.verifyOtp(dto.email, dto.token);
   }
+
+  @ApiOperation({ summary: 'Request Password Reset OTP' })
+  @Post('forgot-password')
+  forgotPassword(@Body() dto: import('./dto/auth.dto').ForgotPasswordDto) {
+    return this.authService.forgotPasswordStep1(dto.email);
+  }
+
+  @ApiOperation({ summary: 'Verify OTP and Reset Password' })
+  @Post('reset-password')
+  resetPassword(@Body() dto: import('./dto/auth.dto').ResetPasswordDto) {
+    return this.authService.forgotPasswordStep2(dto);
+  }
 }

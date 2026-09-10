@@ -198,41 +198,23 @@ export const BillJiNavbar: React.FC<BillJiNavbarProps> = ({ onLoginClick, hideLo
             <span>EN</span>
           </div>
 
-          {/* Login Text Link */}
+          {/* Auth Button — single Login / Register */}
           {!hideLogin && (
-            <span
-              onClick={handleLoginClick}
-              style={{
-                color: '#1E293B',
-                fontSize: '14px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                padding: '6px 12px',
-                borderRadius: '6px',
-                transition: 'background-color 0.2s',
-              }}
-            >
-              Login
-            </span>
-          )}
-
-          {/* Start Free Trial Button */}
-          {!hideSignUp && (
             <Button
               type="primary"
-              onClick={() => navigate('/signup')}
+              onClick={handleLoginClick}
               style={{
                 backgroundColor: '#155EEF',
                 borderColor: '#155EEF',
                 height: '42px',
-                padding: '0 20px',
+                padding: '0 24px',
                 borderRadius: '8px',
                 fontWeight: 600,
                 fontSize: '14px',
                 boxShadow: '0 2px 6px rgba(21, 94, 239, 0.25)',
               }}
             >
-              Start Free Trial
+              Login / Register
             </Button>
           )}
 

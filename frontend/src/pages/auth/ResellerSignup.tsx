@@ -85,12 +85,26 @@ const ResellerSignup: React.FC = () => {
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#F0FDF4' }}>
       <BillJiNavbar hideLogin hideSignUp />
       <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '40px 20px' }}>
-        <Card style={{ width: '100%', maxWidth: '450px', borderRadius: '12px', boxShadow: '0 8px 24px rgba(22, 163, 74, 0.1)' }}>
+        <div
+          style={{
+            backgroundColor: '#FFFFFF',
+            borderRadius: '18px',
+            border: '1px solid #E2E8F0',
+            boxShadow: '0 20px 50px rgba(15, 23, 42, 0.07)',
+            padding: '36px 32px',
+            width: '100%',
+            maxWidth: '460px',
+          }}
+        >
           {step === 'form' && (
             <>
-              <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-                <Title level={3} style={{ color: '#064E3B', margin: 0 }}>Join as a Reseller</Title>
-                <Text type="secondary">Partner with BillJi and grow your business.</Text>
+              <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+                <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#0F172A', margin: '0 0 6px 0' }}>
+                  Join as a Reseller
+                </h2>
+                <p style={{ fontSize: '13px', color: '#64748B', margin: 0 }}>
+                  Partner with BillJi and grow your business.
+                </p>
               </div>
 
               <Form
@@ -98,51 +112,105 @@ const ResellerSignup: React.FC = () => {
                 name="reseller_register"
                 onFinish={onFinishForm}
                 layout="vertical"
-                size="large"
+                requiredMark={false}
               >
                 <Form.Item
                   name="name"
-                  label="Full Name"
+                  label={<span style={{ fontWeight: 600, color: '#334155', fontSize: '13px' }}>Full Name</span>}
                   rules={[{ required: true, message: 'Please input your name!' }]}
                 >
-                  <Input prefix={<UserOutlined />} placeholder="John Doe" />
+                  <Input prefix={<UserOutlined style={{ color: '#94A3B8', marginRight: '8px' }} />} placeholder="John Doe" size="large" />
                 </Form.Item>
 
                 <Form.Item
                   name="email"
-                  label="Email Address"
+                  label={<span style={{ fontWeight: 600, color: '#334155', fontSize: '13px' }}>Email Address</span>}
                   rules={[
                     { type: 'email', message: 'The input is not valid E-mail!' },
                     { required: true, message: 'Please input your E-mail!' }
                   ]}
                 >
-                  <Input prefix={<MailOutlined />} placeholder="john@example.com" />
+                  <Input prefix={<MailOutlined style={{ color: '#94A3B8', marginRight: '8px' }} />} placeholder="john@example.com" size="large" />
                 </Form.Item>
 
                 <Form.Item
                   name="password"
-                  label="Password"
+                  label={<span style={{ fontWeight: 600, color: '#334155', fontSize: '13px' }}>Password</span>}
                   rules={[{ required: true, message: 'Please input your password!' }]}
                 >
-                  <Input.Password prefix={<LockOutlined />} placeholder="••••••••" />
+                  <Input.Password prefix={<LockOutlined style={{ color: '#94A3B8', marginRight: '8px' }} />} placeholder="••••••••" size="large" />
                 </Form.Item>
 
-                <Form.Item style={{ marginBottom: '16px' }}>
-                  <Button type="primary" htmlType="submit" loading={loading} block style={{ backgroundColor: '#16A34A', borderColor: '#16A34A', height: '48px', fontSize: '16px' }}>
-                    Create Reseller Account
-                  </Button>
-                </Form.Item>
-
-                <div style={{ textAlign: 'center', fontSize: '14px', color: '#64748B' }}>
-                  Already have an account?{' '}
-                  <span 
-                    onClick={() => navigate('/login')} 
-                    style={{ color: '#16A34A', fontWeight: 600, cursor: 'pointer' }}
-                  >
-                    Login
-                  </span>
-                </div>
+                <Button 
+                  type="primary" 
+                  htmlType="submit" 
+                  loading={loading} 
+                  block 
+                  style={{ 
+                    height: '48px', 
+                    borderRadius: '8px', 
+                    backgroundColor: '#16A34A', 
+                    fontSize: '15px', 
+                    fontWeight: 600, 
+                    border: 'none',
+                    boxShadow: '0 4px 12px rgba(22, 163, 74, 0.25)',
+                    marginTop: '8px'
+                  }}
+                >
+                  Create Reseller Account
+                </Button>
               </Form>
+
+              <div style={{ display: 'flex', alignItems: 'center', margin: '24px 0 20px 0' }}>
+                <div style={{ flex: 1, height: '1px', backgroundColor: '#E2E8F0' }} />
+                <span style={{ padding: '0 12px', color: '#94A3B8', fontSize: '12px' }}>OR</span>
+                <div style={{ flex: 1, height: '1px', backgroundColor: '#E2E8F0' }} />
+              </div>
+
+              {/* Social Logins */}
+              <div style={{ display: 'flex', flexDirection: 'row', gap: '12px', marginBottom: '24px' }}>
+                <button
+                  type="button"
+                  style={{
+                    flex: 1, height: '46px', backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0',
+                    borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    gap: '8px', fontWeight: 600, fontSize: '14px', color: '#334155', cursor: 'pointer',
+                  }}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                    <path fill="#FBBC05" d="M5.84 14.1c-.22-.66-.35-1.36-.35-2.1s.13-1.44.35-2.1V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.62z" />
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+                  </svg>
+                  <span>Google</span>
+                </button>
+
+                <button
+                  type="button"
+                  style={{
+                    flex: 1, height: '46px', backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0',
+                    borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    gap: '8px', fontWeight: 600, fontSize: '14px', color: '#334155', cursor: 'pointer',
+                  }}
+                >
+                  <svg width="18" height="18" viewBox="0 0 23 23">
+                    <path fill="#f35325" d="M1 1h10v10H1z" /><path fill="#81bc06" d="M12 1h10v10H12z" />
+                    <path fill="#05a6f0" d="M1 12h10v10H1z" /><path fill="#ffba08" d="M12 12h10v10H12z" />
+                  </svg>
+                  <span>Microsoft</span>
+                </button>
+              </div>
+
+              <div style={{ textAlign: 'center', fontSize: '14px', color: '#64748B' }}>
+                Already have an account?{' '}
+                <span 
+                  onClick={() => navigate('/login')} 
+                  style={{ color: '#16A34A', fontWeight: 700, cursor: 'pointer' }}
+                >
+                  Login
+                </span>
+              </div>
             </>
           )}
 
@@ -165,9 +233,7 @@ const ResellerSignup: React.FC = () => {
                   name="otp"
                   rules={[{ required: true, message: 'Please input the OTP!' }, { len: 6, message: 'OTP must be 6 digits' }]}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'center' }}>
-                    <Input.OTP length={6} size="large" />
-                  </div>
+                  <Input.OTP length={6} size="large" style={{ display: 'flex', justifyContent: 'center' }} />
                 </Form.Item>
 
                 <Form.Item>
@@ -203,7 +269,7 @@ const ResellerSignup: React.FC = () => {
               ]}
             />
           )}
-        </Card>
+        </div>
       </div>
       <BillJiFooter />
     </div>
