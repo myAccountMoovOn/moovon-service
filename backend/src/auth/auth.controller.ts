@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, UseGuards, Res, Req } from '@nestjs/common';
+import { Request, Response } from 'express';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { LoginDto, RefreshTokenDto, UpdateProfileDto, ChangePasswordDto } from './dto/auth.dto';
@@ -11,10 +12,18 @@ import { AuthenticatedUser } from '../common/guards/supabase-auth.guard';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  @ApiOperation({ summary: 'Get CSRF Token' })
+  @Get('csrf-token')
+  getCsrfToken(@Req() req: Request) {
+    return { csrfToken: (req as any).csrfToken() };
+  }
+
   @ApiOperation({ summary: 'Login with email and password' })
   @Post('login')
-  login(@Body() dto: LoginDto) {
-    return this.authService.login(dto.email, dto.password, dto.portal);
+  async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
+    const result = await this.authService.login(dto.email, dto.password, (dto as any).portal);
+    this.setAuthCookies(res, result);
+    return result;
   }
 
   @ApiOperation({ summary: 'Register a new Provider/Company Step 1 (Sends OTP)' })
@@ -43,17 +52,26 @@ export class AuthController {
 
   @ApiOperation({ summary: 'Refresh access token' })
   @Post('refresh')
-  refresh(@Body() dto: RefreshTokenDto) {
-    return this.authService.refresh(dto.refreshToken);
+  async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const refreshToken = req.cookies?.['refresh_token'];
+    if (!refreshToken) {
+      throw new import('@nestjs/common').UnauthorizedException('No refresh token provided');
+    }
+    const result = await this.authService.refresh(refreshToken);
+    this.setAuthCookies(res, result);
+    return result;
   }
 
   @ApiOperation({ summary: 'Logout and invalidate session' })
   @ApiBearerAuth()
   @UseGuards(SupabaseAuthGuard)
   @Post('logout')
-  logout(@CurrentUser() user: AuthenticatedUser) {
-    // The access token is in the Authorization header; pass user id for admin signOut
-    return this.authService.logout(user.id);
+  async logout(@CurrentUser() user: AuthenticatedUser, @Res({ passthrough: true }) res: Response) {
+    // The access token is in the Authorization header or cookie; pass user id for admin signOut
+    const result = await this.authService.logout(user.id);
+    res.clearCookie('access_token');
+    res.clearCookie('refresh_token');
+    return result;
   }
 
   @ApiOperation({ summary: 'Get current user profile and customer data' })
@@ -102,7 +120,29 @@ export class AuthController {
 
   @ApiOperation({ summary: 'Verify Email OTP and Login' })
   @Post('verify-otp')
-  verifyOtp(@Body() dto: import('./dto/auth.dto').OtpVerifyDto) {
-    return this.authService.verifyOtp(dto.email, dto.token, dto.portal);
+  async verifyOtp(@Body() dto: import('./dto/auth.dto').OtpVerifyDto, @Res({ passthrough: true }) res: Response) {
+    const result = await this.authService.verifyOtp(dto.email, dto.token, (dto as any).portal);
+    this.setAuthCookies(res, result);
+    return result;
+  }
+
+  private setAuthCookies(res: Response, result: any) {
+    const session = result?.data?.session || result?.session;
+    if (session?.access_token) {
+      res.cookie('access_token', session.access_token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: (session.expires_in || 3600) * 1000,
+      });
+    }
+    if (session?.refresh_token) {
+      res.cookie('refresh_token', session.refresh_token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      });
+    }
   }
 }
