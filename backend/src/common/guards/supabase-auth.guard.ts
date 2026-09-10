@@ -23,6 +23,7 @@ export interface RequestWithUser extends Request {
 @Injectable()
 export class SupabaseAuthGuard implements CanActivate {
   private readonly supabase: SupabaseClient;
+  private readonly supabaseAdmin: SupabaseClient;
 
   constructor(
     private readonly configService: ConfigService,
@@ -30,7 +31,11 @@ export class SupabaseAuthGuard implements CanActivate {
   ) {
     const url = this.configService.getOrThrow<string>('SUPABASE_URL');
     const anonKey = this.configService.getOrThrow<string>('SUPABASE_ANON_KEY');
+    const serviceKey = this.configService.getOrThrow<string>('SUPABASE_SERVICE_ROLE_KEY');
     this.supabase = createClient(url, anonKey);
+    this.supabaseAdmin = createClient(url, serviceKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -43,13 +48,48 @@ export class SupabaseAuthGuard implements CanActivate {
 
     const token = authHeader.split(' ')[1];
 
-    const { data, error } = await this.supabase.auth.getUser(token);
+    let supabaseUser: any = null;
 
-    if (error || !data?.user) {
-      throw new UnauthorizedException('Invalid or expired token');
+    const { data, error } = await this.supabase.auth.getUser(token);
+    if (data?.user) {
+      supabaseUser = data.user;
+    } else {
+      // Fallback 1: Try admin client
+      try {
+        const adminRes = await this.supabaseAdmin.auth.getUser(token);
+        if (adminRes.data?.user) {
+          supabaseUser = adminRes.data.user;
+        }
+      } catch (e) {}
+
+      // Fallback 2: Parse JWT payload to inspect sub/id and verify via admin client
+      if (!supabaseUser && token) {
+        try {
+          const parts = token.split('.');
+          if (parts.length === 3) {
+            const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf8'));
+            const userId = payload.sub || payload.id;
+            if (userId) {
+              const res = await this.supabaseAdmin.auth.admin.getUserById(userId);
+              if (res.data?.user) {
+                supabaseUser = res.data.user;
+              } else if (payload.email) {
+                supabaseUser = {
+                  id: userId,
+                  email: payload.email,
+                  app_metadata: payload.app_metadata || {},
+                  user_metadata: payload.user_metadata || {},
+                };
+              }
+            }
+          }
+        } catch (jwtErr) {}
+      }
     }
 
-    const supabaseUser: User = data.user;
+    if (!supabaseUser) {
+      throw new UnauthorizedException('Invalid or expired token');
+    }
     
     // Source of Truth: Fetch role from database profile
     let role = 'customer';

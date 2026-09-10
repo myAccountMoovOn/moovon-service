@@ -20,18 +20,28 @@ export class RefreshTokenDto {
 
 export class UpdateProfileDto {
   @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
   name?: string;
 
   @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
   phone?: string;
 
   @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
   companyName?: string;
 
   @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
   address?: string;
 
   @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
   gstNumber?: string;
 }
 
@@ -119,9 +129,10 @@ export class RegisterCustomerDto {
   @MinLength(6)
   password: string;
 
-  @ApiProperty()
+  @ApiProperty({ required: false })
+  @IsOptional()
   @IsString()
-  companyCode: string;
+  companyCode?: string;
 
   @ApiProperty()
   @IsString()

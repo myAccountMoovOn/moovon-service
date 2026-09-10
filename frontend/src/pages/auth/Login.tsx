@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
-import { Form, Input, Button, Card, Typography, Alert, Divider, Row, Col, Grid } from 'antd';
+import { Form, Input, Button, Card, Typography, Alert, Divider, Row, Col, Tabs, Grid } from 'antd';
 import { 
   MailOutlined, 
   LockOutlined, 
   ArrowRightOutlined, 
   FileTextOutlined, 
   LineChartOutlined, 
-  FolderOpenOutlined, 
   PieChartOutlined, 
   SafetyCertificateOutlined, 
   CheckCircleOutlined, 
@@ -16,9 +15,10 @@ import {
   PlayCircleOutlined,
   CloseCircleOutlined,
   TeamOutlined,
-  FileDoneOutlined
+  FileDoneOutlined,
+  PhoneOutlined
 } from '@ant-design/icons';
-import { useNavigate, Navigate, Link } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import { useBranding } from '../../context/BrandingContext';
@@ -31,22 +31,39 @@ const API_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_UR
 
 const Login: React.FC = () => {
   const screens = Grid.useBreakpoint();
-  const [step, setStep] = useState(0);
-  const [email, setEmail] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const { user, role, isLoading } = useAuth();
+  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
+  
+  // Login states
+  const [loginStep, setLoginStep] = useState(0);
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [loginSuccess, setLoginSuccess] = useState<string | null>(null);
+
+  // Signup states
+  const [signupStep, setSignupStep] = useState(0);
+  const [signupEmail, setSignupEmail] = useState('');
+  const [signupName, setSignupName] = useState('');
+  const [signupPhone, setSignupPhone] = useState('');
+  const [signupLoading, setSignupLoading] = useState(false);
+  const [signupError, setSignupError] = useState<string | null>(null);
+
+  const { user, role, isLoading, setFallbackUser } = useAuth();
   const { branding } = useBranding();
   const navigate = useNavigate();
+
+  const [signupForm] = Form.useForm();
 
   // If already logged in, redirect based on role
   if (!isLoading && user) {
     return <Navigate to={role === 'admin' ? '/admin/dashboard' : '/customer/dashboard'} replace />;
   }
 
-  const onFinish = async (values: any) => {
-    setLoading(true);
-    setErrorMsg(null);
+  // LOGIN HANDLERS
+  const onLoginFinish = async (values: any) => {
+    setLoginLoading(true);
+    setLoginError(null);
+    setLoginSuccess(null);
     try {
       const res = await axios.post(`${API_URL}/auth/login`, {
         email: values.email,
@@ -54,41 +71,102 @@ const Login: React.FC = () => {
       });
 
       if (res.data?.data?.requireOtp) {
-        setEmail(values.email);
-        setStep(1);
+        setLoginEmail(values.email);
+        setLoginStep(1);
       }
     } catch (err: any) {
-      setErrorMsg(err.response?.data?.message || err.message || 'An unexpected error occurred');
+      setLoginError(err.response?.data?.message || err.message || 'An unexpected error occurred');
     } finally {
-      setLoading(false);
+      setLoginLoading(false);
     }
   };
 
-  const handleVerify = async (values: any) => {
-    setLoading(true);
-    setErrorMsg(null);
+  const handleLoginVerify = async (values: any) => {
+    setLoginLoading(true);
+    setLoginError(null);
+    setLoginSuccess(null);
     try {
       const res = await axios.post(`${API_URL}/auth/verify-otp`, {
-        email,
+        email: loginEmail,
         token: values.otp,
       });
 
       const { session, user: backendUser } = res.data?.data || {};
-      if (session) {
-        // Hydrate the supabase client with the session so AuthContext detects it
-        await supabase.auth.setSession({
-          access_token: session.access_token,
-          refresh_token: session.refresh_token,
-        });
+      const rawRole = backendUser?.role || 'customer';
+      const isAdmin = rawRole === 'provider' || rawRole === 'super_admin' || rawRole === 'admin' || rawRole === 'reseller';
+      const mappedRole: 'admin' | 'customer' = isAdmin ? 'admin' : 'customer';
 
-        const rawRole = backendUser.role || 'customer';
-        const isAdmin = rawRole === 'provider' || rawRole === 'super_admin' || rawRole === 'admin' || rawRole === 'reseller';
-        navigate(isAdmin ? '/admin/dashboard' : '/customer/dashboard', { replace: true });
+      if (backendUser) {
+        setFallbackUser(backendUser, mappedRole, session);
       }
+
+      if (session?.access_token) {
+        try {
+          await supabase.auth.setSession({
+            access_token: session.access_token,
+            refresh_token: session.refresh_token || '',
+          });
+        } catch (e) {
+          console.warn('Supabase setSession local warning:', e);
+        }
+      }
+
+      navigate(mappedRole === 'admin' ? '/admin/dashboard' : '/customer/dashboard', { replace: true });
     } catch (err: any) {
-      setErrorMsg(err.response?.data?.message || err.message || 'Invalid OTP');
+      setLoginError(err.response?.data?.message || err.message || 'Invalid OTP');
     } finally {
-      setLoading(false);
+      setLoginLoading(false);
+    }
+  };
+
+  // SIGNUP HANDLERS
+  const onSignupFinish = async (values: any) => {
+    setSignupLoading(true);
+    setSignupError(null);
+    try {
+      await axios.post(`${API_URL}/auth/register-customer-step1`, {
+        email: values.email,
+        password: values.password,
+        name: values.name,
+        phone: values.phone,
+      });
+      setSignupName(values.name);
+      setSignupPhone(values.phone);
+      setSignupEmail(values.email);
+      setSignupStep(1);
+    } catch (err: any) {
+      setSignupError(err.response?.data?.message || err.message || 'Registration failed');
+    } finally {
+      setSignupLoading(false);
+    }
+  };
+
+  const handleSignupVerify = async (values: any) => {
+    setSignupLoading(true);
+    setSignupError(null);
+    try {
+      await axios.post(`${API_URL}/auth/register-verify`, {
+        email: signupEmail,
+        token: values.otp,
+      });
+
+      // Save user signup details into local storage fallback
+      const newUser = {
+        email: signupEmail,
+        name: signupName,
+        phone: signupPhone,
+        role: 'customer',
+      };
+      localStorage.setItem('moovon_user', JSON.stringify(newUser));
+
+      setAuthMode('login');
+      setSignupStep(0);
+      setLoginSuccess('Account created successfully! Please sign in.');
+      setLoginError(null);
+    } catch (err: any) {
+      setSignupError(err.response?.data?.message || err.message || 'Invalid OTP. Please try again.');
+    } finally {
+      setSignupLoading(false);
     }
   };
 
@@ -103,9 +181,8 @@ const Login: React.FC = () => {
         {/* Left Side (Hero + Cards + Banner) */}
         <div style={{ flex: 1, minWidth: 600 }}>
           
-          {/* Hero Row (Text & Image) */}
+          {/* Hero Row */}
           <div style={{ display: 'flex', gap: 32, marginBottom: 48, alignItems: 'center' }}>
-            
             <div style={{ flex: 1 }}>
               <div style={{ display: 'inline-flex', alignItems: 'center', background: '#fff', padding: '6px 16px', borderRadius: 20, marginBottom: 24, fontSize: 12, fontWeight: 600, color: '#555', boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
                 <span style={{ color: '#52c41a', marginRight: 8, fontSize: 10 }}>●</span> Trusted by 1,000+ businesses ✨
@@ -120,7 +197,7 @@ const Login: React.FC = () => {
               </Text>
               
               <div style={{ display: 'flex', gap: 16, marginBottom: 24 }}>
-                 <Button type="primary" size="large" style={{ backgroundColor: '#5c3cff', borderRadius: 8, height: 48, padding: '0 24px', fontWeight: 600, border: 'none' }}>
+                 <Button type="primary" size="large" onClick={() => setAuthMode('signup')} style={{ backgroundColor: '#5c3cff', borderRadius: 8, height: 48, padding: '0 24px', fontWeight: 600, border: 'none' }}>
                    Get Started Free <ArrowRightOutlined />
                  </Button>
                  <Button size="large" style={{ borderRadius: 8, height: 48, padding: '0 24px', fontWeight: 600, color: '#5c3cff', borderColor: '#d9cbfc' }}>
@@ -256,76 +333,163 @@ const Login: React.FC = () => {
           </Card>
         </div>
 
-        {/* Right Side (Login) */}
-        <div style={{ width: 400, flexShrink: 0 }}>
-          <Card style={{ borderRadius: 24, padding: '32px 16px', boxShadow: '0 10px 40px rgba(0,0,0,0.05)', border: 'none' }}>
+        {/* Right Side (Integrated Card with Login & Signup Tabs) */}
+        <div style={{ width: 440, flexShrink: 0 }}>
+          <Card style={{ borderRadius: 24, padding: '24px 16px', boxShadow: '0 10px 40px rgba(0,0,0,0.06)', border: 'none' }}>
             
-            <div style={{ marginBottom: 32 }}>
-              <div style={{ width: 48, height: 48, backgroundColor: '#5c3cff', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-                <FileTextOutlined style={{ color: 'white', fontSize: 24 }} />
-              </div>
-              <Title level={3} style={{ margin: 0, marginBottom: 8, fontWeight: 700 }}>Welcome back! 👋</Title>
-              <Text type="secondary" style={{ fontSize: 14 }}>Sign in to continue to your account</Text>
-            </div>
+            <Tabs
+              activeKey={authMode}
+              onChange={(key) => {
+                setAuthMode(key as 'login' | 'signup');
+                setLoginError(null);
+                setLoginSuccess(null);
+                setSignupError(null);
+              }}
+              centered
+              items={[
+                { key: 'login', label: <span style={{ fontSize: 16, fontWeight: 600 }}>Log In</span> },
+                { key: 'signup', label: <span style={{ fontSize: 16, fontWeight: 600 }}>Sign Up</span> },
+              ]}
+              style={{ marginBottom: 20 }}
+            />
 
-            {errorMsg && <Alert message={errorMsg} type="error" showIcon style={{ marginBottom: 24 }} />}
+            {/* LOGIN MODE */}
+            {authMode === 'login' && (
+              <>
+                <div style={{ marginBottom: 24, textAlign: 'center' }}>
+                  <Title level={4} style={{ margin: 0, marginBottom: 4, fontWeight: 700 }}>Welcome back! 👋</Title>
+                  <Text type="secondary" style={{ fontSize: 13 }}>Sign in to continue to your account</Text>
+                </div>
 
-            {step === 0 ? (
-              <Form name="normal_login" onFinish={onFinish} layout="vertical" size="large">
-                <Form.Item
-                  name="email"
-                  rules={[{ required: true, message: 'Please input your Email!' }, { type: 'email', message: 'Invalid email address' }]}
-                >
-                  <Input prefix={<UserOutlined style={{ color: '#bfbfbf', marginRight: 8 }} />} placeholder="Email address" style={{ borderRadius: 8, padding: '12px 16px' }} />
-                </Form.Item>
-                
-                <Form.Item
-                  name="password"
-                  rules={[{ required: true, message: 'Please input your Password!' }]}
-                  style={{ marginBottom: 24 }}
-                >
-                  <Input.Password
-                    prefix={<LockOutlined style={{ color: '#bfbfbf', marginRight: 8 }} />}
-                    placeholder="Password"
-                    style={{ borderRadius: 8, padding: '12px 16px' }}
-                  />
-                </Form.Item>
+                {loginSuccess && <Alert message={loginSuccess} type="success" showIcon style={{ marginBottom: 20 }} />}
+                {loginError && <Alert message={loginError} type="error" showIcon style={{ marginBottom: 20 }} />}
 
-                <Form.Item style={{ marginBottom: 24 }}>
-                  <Button type="primary" htmlType="submit" loading={loading} block style={{ height: 48, borderRadius: 8, backgroundColor: '#5c3cff', fontSize: 16, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, fontWeight: 600 }}>
-                    Log in <ArrowRightOutlined />
-                  </Button>
-                </Form.Item>
+                {loginStep === 0 ? (
+                  <Form name="normal_login" onFinish={onLoginFinish} layout="vertical" size="large">
+                    <Form.Item
+                      name="email"
+                      rules={[{ required: true, message: 'Please input your Email!' }, { type: 'email', message: 'Invalid email' }]}
+                    >
+                      <Input prefix={<UserOutlined style={{ color: '#bfbfbf', marginRight: 8 }} />} placeholder="Email address" style={{ borderRadius: 8 }} />
+                    </Form.Item>
+                    
+                    <Form.Item
+                      name="password"
+                      rules={[{ required: true, message: 'Please input your Password!' }]}
+                      style={{ marginBottom: 20 }}
+                    >
+                      <Input.Password
+                        prefix={<LockOutlined style={{ color: '#bfbfbf', marginRight: 8 }} />}
+                        placeholder="Password"
+                        style={{ borderRadius: 8 }}
+                      />
+                    </Form.Item>
 
-                <Divider plain style={{ color: '#999', margin: '0 0 24px 0', fontSize: 13 }}>Don't have an account?</Divider>
+                    <Form.Item style={{ marginBottom: 20 }}>
+                      <Button type="primary" htmlType="submit" loading={loginLoading} block style={{ height: 48, borderRadius: 8, backgroundColor: '#5c3cff', fontSize: 16, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, fontWeight: 600 }}>
+                        Log in <ArrowRightOutlined />
+                      </Button>
+                    </Form.Item>
 
-                <Link to="/signup" style={{ display: 'block' }}>
-                  <Button block style={{ height: 48, borderRadius: 8, color: '#5c3cff', borderColor: '#d9d9d9', fontSize: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                    Sign up for an Account <UserOutlined />
-                  </Button>
-                </Link>
-              </Form>
-            ) : (
-              // OTP STEP (Matches the card styling)
-              <Form layout="vertical" onFinish={handleVerify} size="large">
-                <Alert
-                  type="info"
-                  message="Two-Factor Authentication"
-                  description={`We sent a 6-digit code to ${email}.`}
-                  style={{ marginBottom: 24, borderRadius: 8 }}
-                />
-                <Form.Item name="otp" rules={[{ required: true, len: 6, message: 'Enter the 6-digit code' }]}>
-                  <Input placeholder="Enter 6-digit OTP" maxLength={6} style={{ textAlign: 'center', letterSpacing: 8, fontSize: 18, borderRadius: 8, padding: '12px 16px' }} />
-                </Form.Item>
-                <Form.Item style={{ marginBottom: 16 }}>
-                  <Button type="primary" htmlType="submit" block loading={loading} style={{ height: 48, borderRadius: 8, backgroundColor: '#5c3cff', fontSize: 16, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, fontWeight: 600 }}>
-                    Verify & Continue <ArrowRightOutlined />
-                  </Button>
-                </Form.Item>
-                <Button type="link" block onClick={() => setStep(0)} disabled={loading} style={{ color: '#888' }}>
-                  Back to Login
-                </Button>
-              </Form>
+                    <Divider plain style={{ color: '#999', margin: '0 0 20px 0', fontSize: 13 }}>Need an account?</Divider>
+
+                    <Button
+                      block
+                      onClick={() => setAuthMode('signup')}
+                      style={{ height: 44, borderRadius: 8, color: '#5c3cff', borderColor: '#d9d9d9', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+                    >
+                      Sign up for an Account <UserOutlined />
+                    </Button>
+                  </Form>
+                ) : (
+                  <Form layout="vertical" onFinish={handleLoginVerify} size="large">
+                    <Alert
+                      type="info"
+                      message="Two-Factor Authentication"
+                      description={`We sent a 6-digit code to ${loginEmail}.`}
+                      style={{ marginBottom: 20, borderRadius: 8 }}
+                    />
+                    <Form.Item name="otp" rules={[{ required: true, len: 6, message: 'Enter the 6-digit code' }]}>
+                      <Input placeholder="Enter 6-digit OTP" maxLength={6} style={{ textAlign: 'center', letterSpacing: 8, fontSize: 18, borderRadius: 8 }} />
+                    </Form.Item>
+                    <Form.Item style={{ marginBottom: 16 }}>
+                      <Button type="primary" htmlType="submit" block loading={loginLoading} style={{ height: 48, borderRadius: 8, backgroundColor: '#5c3cff', fontSize: 16, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, fontWeight: 600 }}>
+                        Verify & Continue <ArrowRightOutlined />
+                      </Button>
+                    </Form.Item>
+                    <Button type="link" block onClick={() => setLoginStep(0)} disabled={loginLoading} style={{ color: '#888' }}>
+                      Back to Login
+                    </Button>
+                  </Form>
+                )}
+              </>
+            )}
+
+            {/* SIGNUP MODE */}
+            {authMode === 'signup' && (
+              <>
+                <div style={{ marginBottom: 24, textAlign: 'center' }}>
+                  <Title level={4} style={{ margin: 0, marginBottom: 4, fontWeight: 700 }}>Create an Account ✨</Title>
+                  <Text type="secondary" style={{ fontSize: 13 }}>Join Moovon today</Text>
+                </div>
+
+                {signupError && <Alert message={signupError} type="error" showIcon style={{ marginBottom: 20 }} />}
+
+                {signupStep === 0 ? (
+                  <Form form={signupForm} layout="vertical" onFinish={onSignupFinish} size="large">
+                    <Row gutter={12}>
+                      <Col xs={24} sm={12}>
+                        <Form.Item name="name" label="Full Name" rules={[{ required: true, message: 'Full name required' }]}>
+                          <Input prefix={<UserOutlined style={{ color: '#bfbfbf' }} />} placeholder="Full Name" style={{ borderRadius: 8 }} />
+                        </Form.Item>
+                      </Col>
+                      <Col xs={24} sm={12}>
+                        <Form.Item name="phone" label="Phone" rules={[{ required: true, message: 'Phone required' }]}>
+                          <Input prefix={<PhoneOutlined style={{ color: '#bfbfbf' }} />} placeholder="Phone number" style={{ borderRadius: 8 }} />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+
+                    <Form.Item name="email" label="Email" rules={[{ required: true, type: 'email', message: 'Valid email required' }]}>
+                      <Input prefix={<MailOutlined style={{ color: '#bfbfbf' }} />} placeholder="you@example.com" style={{ borderRadius: 8 }} />
+                    </Form.Item>
+
+                    <Form.Item name="password" label="Password" rules={[{ required: true, min: 6, message: 'Min. 6 chars' }]}>
+                      <Input.Password prefix={<LockOutlined style={{ color: '#bfbfbf' }} />} placeholder="Min. 6 characters" style={{ borderRadius: 8 }} />
+                    </Form.Item>
+
+                    <Form.Item style={{ marginBottom: 20 }}>
+                      <Button type="primary" htmlType="submit" loading={signupLoading} block style={{ height: 48, borderRadius: 8, backgroundColor: '#5c3cff', fontSize: 16, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, fontWeight: 600 }}>
+                        Create Account <ArrowRightOutlined />
+                      </Button>
+                    </Form.Item>
+
+                    <div style={{ textAlign: 'center' }}>
+                      <Text type="secondary" style={{ fontSize: 13 }}>Already have an account? </Text>
+                      <Button type="link" onClick={() => setAuthMode('login')} style={{ padding: 0, fontWeight: 600, color: '#5c3cff' }}>
+                        Sign in
+                      </Button>
+                    </div>
+                  </Form>
+                ) : (
+                  <Form layout="vertical" onFinish={handleSignupVerify} size="large">
+                    <Alert
+                      type="success"
+                      message="Account Created!"
+                      description={`We sent a 6-digit verification code to ${signupEmail}. Please enter it below.`}
+                      style={{ marginBottom: 20, borderRadius: 8 }}
+                    />
+                    <Form.Item name="otp" rules={[{ required: true, len: 6, message: 'Enter the 6-digit code' }]}>
+                      <Input placeholder="Enter 6-digit OTP" maxLength={6} style={{ textAlign: 'center', letterSpacing: 8, fontSize: 18, borderRadius: 8 }} />
+                    </Form.Item>
+                    <Form.Item style={{ marginBottom: 16 }}>
+                      <Button type="primary" htmlType="submit" loading={signupLoading} block style={{ height: 48, borderRadius: 8, backgroundColor: '#5c3cff', fontSize: 16, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, fontWeight: 600 }}>
+                        Verify & Sign In <ArrowRightOutlined />
+                      </Button>
+                    </Form.Item>
+                  </Form>
+                )}
+              </>
             )}
 
           </Card>
