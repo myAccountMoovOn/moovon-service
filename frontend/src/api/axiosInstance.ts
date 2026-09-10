@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { supabase } from './supabaseClient';
+import { getStorageKey } from '../context/AuthContext';
 
 const axiosInstance = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api/v1',
@@ -18,7 +19,7 @@ axiosInstance.interceptors.request.use(async (config) => {
   } catch (e) {}
 
   if (!token) {
-    const storedSession = localStorage.getItem('moovon_session');
+    const storedSession = localStorage.getItem(getStorageKey('session'));
     if (storedSession) {
       try {
         const parsed = JSON.parse(storedSession);
@@ -45,7 +46,7 @@ axiosInstance.interceptors.response.use((response) => {
     try {
       const { data: { session } } = await supabase.auth.refreshSession();
       if (session?.access_token) {
-        localStorage.setItem('moovon_session', JSON.stringify(session));
+        localStorage.setItem(getStorageKey('session'), JSON.stringify(session));
         originalRequest.headers.Authorization = `Bearer ${session.access_token}`;
         return axiosInstance(originalRequest);
       }

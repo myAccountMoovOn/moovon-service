@@ -142,3 +142,24 @@ export class RegisterCustomerDto {
   @IsString()
   phone: string;
 }
+
+export class ForgotPasswordDto {
+  @ApiProperty()
+  @IsEmail()
+  email: string;
+}
+
+export class ResetPasswordDto {
+  @ApiProperty()
+  @IsEmail()
+  email: string;
+
+  @ApiProperty()
+  @IsString()
+  token: string;
+
+  @ApiProperty()
+  @IsString()
+  @MinLength(6)
+  newPassword: string;
+}

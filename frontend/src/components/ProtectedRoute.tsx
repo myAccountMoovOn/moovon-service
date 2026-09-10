@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { Spin } from 'antd';
 
 interface ProtectedRouteProps {
-  allowedRole?: 'admin' | 'customer';
+  allowedRole?: 'admin' | 'customer' | 'reseller';
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRole }) => {
@@ -23,7 +23,18 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRole }) =
   }
 
   if (allowedRole && role !== allowedRole) {
-    // If Admin tries to hit Customer route or vice versa
+    const isResellerDomain = window.location.hostname.startsWith('reseller.');
+    const isCompanyDomain = window.location.hostname.startsWith('company.');
+
+    // On subdomains, only /dashboard and /login exist — never redirect to /admin/dashboard etc.
+    if (isResellerDomain || isCompanyDomain) {
+      return <Navigate to="/login" replace />;
+    }
+
+    // Main domain — redirect to the user's correct dashboard
+    if (role === 'reseller') {
+      return <Navigate to="/dashboard" replace />;
+    }
     return <Navigate to={`/${role}/dashboard`} replace />;
   }
 

@@ -27,6 +27,9 @@ export class AuthService {
     expiresAt: number 
   }>();
 
+  // Custom in-memory cache for Password Reset
+  private resetCache = new Map<string, { otp: string, userId: string, expiresAt: number }>();
+
   constructor(
     private readonly configService: ConfigService,
     @InjectRepository(Profile)
@@ -443,6 +446,63 @@ export class AuthService {
       throw new Error(`Failed to change password: ${error.message}`);
     }
     return { message: 'Password updated successfully' };
+  }
+
+  async forgotPasswordStep1(email: string) {
+    // Check if user exists
+    const { data: { users }, error: checkError } = await this.supabaseAdmin.auth.admin.listUsers();
+    if (checkError || !users) {
+      throw new InternalServerErrorException('Failed to check user existence');
+    }
+    const user = users.find(u => u.email === email);
+    if (!user) {
+      // Return success even if not found to prevent email enumeration, or throw error based on preference
+      throw new UnauthorizedException('User with this email not found.');
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = Date.now() + 10 * 60 * 1000;
+
+    this.resetCache.set(email, { otp, userId: user.id, expiresAt });
+
+    try {
+      await this.sendCustomEmailOtp(email, otp);
+    } catch (e: any) {
+      this.resetCache.delete(email);
+      throw new InternalServerErrorException(e.message);
+    }
+
+    return { message: 'Password reset OTP sent to your email.' };
+  }
+
+  async forgotPasswordStep2(dto: import('./dto/auth.dto').ResetPasswordDto) {
+    const cached = this.resetCache.get(dto.email);
+    if (!cached) {
+      throw new UnauthorizedException('No pending password reset request found for this email');
+    }
+
+    if (Date.now() > cached.expiresAt) {
+      this.resetCache.delete(dto.email);
+      throw new UnauthorizedException('OTP has expired. Please request a new password reset.');
+    }
+
+    if (cached.otp !== dto.token) {
+      throw new UnauthorizedException('Invalid OTP code');
+    }
+
+    // Reset the password
+    const { error } = await this.supabaseAdmin.auth.admin.updateUserById(cached.userId, {
+      password: dto.newPassword,
+    });
+
+    if (error) {
+      throw new Error(`Failed to reset password: ${error.message}`);
+    }
+
+    // Clean up cache
+    this.resetCache.delete(dto.email);
+
+    return { message: 'Password has been successfully reset.' };
   }
 
   async sendCustomEmailOtp(email: string, otp: string, companyId?: string | null) {

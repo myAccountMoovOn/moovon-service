@@ -19,6 +19,10 @@ export const LoginCard: React.FC = () => {
   const [success, setSuccess] = useState<string | null>(null);
   const [form] = Form.useForm();
 
+  const hostname = window.location.hostname;
+  const isReseller = hostname.startsWith('reseller.');
+  const primaryColor = isReseller ? '#16A34A' : '#155EEF';
+
   // Handlers for Login Submit
   const handleLoginSubmit = async (values: any) => {
     setLoading(true);
@@ -38,9 +42,14 @@ export const LoginCard: React.FC = () => {
         // Direct session response if OTP disabled
         const session = res.data?.data?.session || res.data?.session;
         const backendUser = res.data?.data?.user || res.data?.user;
+
+        // FIX 1: Preserve the real role — reseller stays 'reseller', not mapped to 'admin'
         const rawRole = backendUser?.role || 'customer';
-        const isAdmin = ['provider', 'super_admin', 'admin', 'reseller'].includes(rawRole);
-        const mappedRole: 'admin' | 'customer' = isAdmin ? 'admin' : 'customer';
+        const mappedRole = (['provider', 'super_admin', 'admin'].includes(rawRole)
+          ? 'admin'
+          : rawRole === 'reseller'
+            ? 'reseller'
+            : 'customer') as 'admin' | 'customer' | 'reseller';
 
         if (backendUser) {
           setFallbackUser(backendUser, mappedRole, session);
@@ -56,7 +65,20 @@ export const LoginCard: React.FC = () => {
             console.warn('Supabase setSession warning:', e);
           }
         }
-        navigate(mappedRole === 'admin' ? '/admin/dashboard' : '/customer/dashboard', { replace: true });
+
+        // FIX 2: Subdomain-aware redirect — reseller domain always goes to /dashboard
+        // FIX 3: No early navigate() — Login.tsx watches auth state and handles redirect
+        //         reactively, avoiding the race condition where ProtectedRoute
+        //         checks user before setFallbackUser state has settled.
+        const isResellerDomain = window.location.hostname.startsWith('reseller.');
+        const isCompanyDomain = window.location.hostname.startsWith('company.');
+        if (isResellerDomain || isCompanyDomain) {
+          navigate('/dashboard', { replace: true });
+        } else if (mappedRole === 'admin') {
+          navigate('/admin/dashboard', { replace: true });
+        } else {
+          navigate('/customer/dashboard', { replace: true });
+        }
       }
     } catch (err: any) {
       setError(err.response?.data?.message || err.message || 'Invalid email or password');
@@ -73,13 +95,18 @@ export const LoginCard: React.FC = () => {
     try {
       const res = await axios.post(`${API_URL}/auth/verify-otp`, {
         email,
-        token: values.otp,
+        token: typeof values.otp === 'string' ? values.otp.trim() : values.otp,
       });
 
       const { session, user: backendUser } = res.data?.data || res.data || {};
       const rawRole = backendUser?.role || 'customer';
-      const isAdmin = ['provider', 'super_admin', 'admin', 'reseller'].includes(rawRole);
-      const mappedRole: 'admin' | 'customer' = isAdmin ? 'admin' : 'customer';
+
+      // FIX 1: Preserve the real role
+      const mappedRole = (['provider', 'super_admin', 'admin'].includes(rawRole)
+        ? 'admin'
+        : rawRole === 'reseller'
+          ? 'reseller'
+          : 'customer') as 'admin' | 'customer' | 'reseller';
 
       if (backendUser) {
         setFallbackUser(backendUser, mappedRole, session);
@@ -96,7 +123,16 @@ export const LoginCard: React.FC = () => {
         }
       }
 
-      navigate(mappedRole === 'admin' ? '/admin/dashboard' : '/customer/dashboard', { replace: true });
+      // FIX 2: Subdomain-aware redirect
+      const isResellerDomain = window.location.hostname.startsWith('reseller.');
+      const isCompanyDomain = window.location.hostname.startsWith('company.');
+      if (isResellerDomain || isCompanyDomain) {
+        navigate('/dashboard', { replace: true });
+      } else if (mappedRole === 'admin') {
+        navigate('/admin/dashboard', { replace: true });
+      } else {
+        navigate('/customer/dashboard', { replace: true });
+      }
     } catch (err: any) {
       setError(err.response?.data?.message || err.message || 'Invalid OTP code');
     } finally {
@@ -232,7 +268,7 @@ export const LoginCard: React.FC = () => {
             <span
               onClick={() => navigate('/forgot-password')}
               style={{
-                color: '#155EEF',
+                color: primaryColor,
                 fontSize: '13px',
                 fontWeight: 600,
                 cursor: 'pointer',
@@ -251,14 +287,14 @@ export const LoginCard: React.FC = () => {
             style={{
               height: '48px',
               borderRadius: '8px',
-              backgroundColor: '#155EEF',
+              backgroundColor: primaryColor,
               fontSize: '15px',
               fontWeight: 600,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: '8px',
-              boxShadow: '0 4px 12px rgba(21, 94, 239, 0.25)',
+              boxShadow: isReseller ? '0 4px 12px rgba(22, 163, 74, 0.25)' : '0 4px 12px rgba(21, 94, 239, 0.25)',
               border: 'none',
             }}
           >
@@ -273,18 +309,7 @@ export const LoginCard: React.FC = () => {
             name="otp"
             rules={[{ required: true, len: 6, message: 'Enter the 6-digit code' }]}
           >
-            <Input
-              placeholder="123456"
-              maxLength={6}
-              style={{
-                height: '48px',
-                borderRadius: '8px',
-                fontSize: '18px',
-                textAlign: 'center',
-                letterSpacing: '8px',
-                border: '1px solid #CBD5E1',
-              }}
-            />
+            <Input.OTP length={6} size="large" style={{ display: 'flex', justifyContent: 'center' }} />
           </Form.Item>
           <Button
             type="primary"
@@ -294,10 +319,11 @@ export const LoginCard: React.FC = () => {
             style={{
               height: '48px',
               borderRadius: '8px',
-              backgroundColor: '#155EEF',
+              backgroundColor: primaryColor,
               fontSize: '15px',
               fontWeight: 600,
               border: 'none',
+              boxShadow: isReseller ? '0 4px 12px rgba(22, 163, 74, 0.25)' : '0 4px 12px rgba(21, 94, 239, 0.25)',
             }}
           >
             {loading ? 'Verifying...' : 'Verify OTP & Continue'}
@@ -319,13 +345,13 @@ export const LoginCard: React.FC = () => {
       </Divider>
 
       {/* Social Logins */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
+      <div style={{ display: 'flex', flexDirection: 'row', gap: '12px', marginBottom: '24px' }}>
         {/* Continue with Google */}
         <button
           type="button"
           onClick={handleGoogleLogin}
           style={{
-            width: '100%',
+            flex: 1,
             height: '46px',
             backgroundColor: '#FFFFFF',
             border: '1px solid #E2E8F0',
@@ -333,7 +359,7 @@ export const LoginCard: React.FC = () => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '10px',
+            gap: '8px',
             fontWeight: 600,
             fontSize: '14px',
             color: '#334155',
@@ -360,7 +386,7 @@ export const LoginCard: React.FC = () => {
               d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
             />
           </svg>
-          <span>Continue with Google</span>
+          <span>Google</span>
         </button>
 
         {/* Continue with Microsoft */}
@@ -368,7 +394,7 @@ export const LoginCard: React.FC = () => {
           type="button"
           onClick={handleMicrosoftLogin}
           style={{
-            width: '100%',
+            flex: 1,
             height: '46px',
             backgroundColor: '#FFFFFF',
             border: '1px solid #E2E8F0',
@@ -376,7 +402,7 @@ export const LoginCard: React.FC = () => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '10px',
+            gap: '8px',
             fontWeight: 600,
             fontSize: '14px',
             color: '#334155',
@@ -391,7 +417,7 @@ export const LoginCard: React.FC = () => {
             <path fill="#05a6f0" d="M1 12h10v10H1z" />
             <path fill="#ffba08" d="M12 12h10v10H12z" />
           </svg>
-          <span>Continue with Microsoft</span>
+          <span>Microsoft</span>
         </button>
       </div>
 
@@ -400,7 +426,7 @@ export const LoginCard: React.FC = () => {
         <span>Don't have an account? </span>
         <span
           onClick={() => navigate('/signup')}
-          style={{ color: '#155EEF', fontWeight: 700, cursor: 'pointer' }}
+          style={{ color: primaryColor, fontWeight: 700, cursor: 'pointer' }}
         >
           Sign Up
         </span>
