@@ -3,8 +3,7 @@ import { Form, Input, Button, Typography, Alert, Tabs, Row, Col } from 'antd';
 import { MailOutlined, LockOutlined, UserOutlined, PhoneOutlined, ArrowRightOutlined, XOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { useAuth } from '../context/AuthContext';
-import { supabase } from '../api/supabaseClient';
+import { useAuth, getStorageKey } from '../context/AuthContext';
 
 const { Title, Text } = Typography;
 const API_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1';
@@ -74,18 +73,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialTa
       const mappedRole: 'admin' | 'customer' = isAdmin ? 'admin' : 'customer';
 
       if (backendUser) {
-        setFallbackUser(backendUser, mappedRole, session);
-      }
-
-      if (session?.access_token) {
-        try {
-          await supabase.auth.setSession({
-            access_token: session.access_token,
-            refresh_token: session.refresh_token || '',
-          });
-        } catch (e) {
-          console.warn('Supabase setSession local warning:', e);
-        }
+        setFallbackUser(backendUser, mappedRole);
       }
 
       onClose();
@@ -136,7 +124,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialTa
         phone: signupPhone,
         role: 'customer',
       };
-      localStorage.setItem('moovon_user', JSON.stringify(newUser));
+      localStorage.setItem(getStorageKey('user'), JSON.stringify(newUser));
 
       setActiveTab('login');
       setSignupStep(0);

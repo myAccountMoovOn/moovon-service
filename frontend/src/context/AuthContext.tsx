@@ -1,18 +1,28 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import type { Session, User } from '@supabase/supabase-js';
-import { supabase } from '../api/supabaseClient';
+import axiosInstance from '../api/axiosInstance';
+
+export type UserAppRole = 'admin' | 'company' | 'customer' | 'reseller' | 'provider' | null;
+
+export function getPortalPrefix(): string {
+  const hostname = window.location.hostname;
+  if (hostname.startsWith('reseller.')) return 'reseller';
+  if (hostname.startsWith('company.'))  return 'company';
+  return 'main';
+}
+
+export function getStorageKey(name: string): string {
+  return `moovon_${getPortalPrefix()}_${name}`;
+}
 
 interface AuthContextType {
-  session: Session | null;
-  user: User | null;
-  role: 'admin' | 'customer' | null;
+  user: any | null;
+  role: UserAppRole;
   isLoading: boolean;
-  setFallbackUser: (user: any, role: 'admin' | 'customer', userSession?: any) => void;
+  setFallbackUser: (user: any, role: UserAppRole, userSession?: any) => void;
   signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
-  session: null,
   user: null,
   role: null,
   isLoading: true,
@@ -21,23 +31,57 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser] = useState<User | null>(null);
-  const [role, setRole] = useState<'admin' | 'customer' | null>(null);
+  const [user, setUser] = useState<any | null>(null);
+  const [role, setRole] = useState<UserAppRole>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     let mounted = true;
 
     async function initializeAuth() {
+      // Fast load from localStorage cache (purely cosmetic, tokens are not here)
+      const storedUser = localStorage.getItem(getStorageKey('user'));
+      const storedRole = localStorage.getItem(getStorageKey('role')) as UserAppRole;
+      if (storedUser && storedRole) {
+        try {
+          setUser(JSON.parse(storedUser));
+          setRole(storedRole);
+        } catch {}
+      }
+
+      // Authoritative check with backend using HttpOnly cookie
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (mounted) {
-          updateState(session);
+        const res = await axiosInstance.get('/auth/me');
+        if (mounted && res.data) {
+          const backendUser = res.data;
+          setUser(backendUser);
+          
+          const rawRole = (
+            backendUser.app_metadata?.role ||
+            backendUser.user_metadata?.role ||
+            backendUser.role ||
+            'customer'
+          ).toString().toLowerCase();
+
+          let mappedRole: UserAppRole = 'customer';
+          if (rawRole === 'super_admin' || rawRole === 'admin') {
+            mappedRole = 'admin';
+          } else if (rawRole === 'reseller') {
+            mappedRole = 'reseller';
+          } else if (rawRole === 'provider' || rawRole === 'company') {
+            mappedRole = 'company';
+          }
+
+          setRole(mappedRole);
+          localStorage.setItem(getStorageKey('user'), JSON.stringify(backendUser));
+          localStorage.setItem(getStorageKey('role'), mappedRole ?? 'customer');
         }
       } catch (e) {
         if (mounted) {
-          updateState(null);
+          setUser(null);
+          setRole(null);
+          localStorage.removeItem(getStorageKey('user'));
+          localStorage.removeItem(getStorageKey('role'));
         }
       } finally {
         if (mounted) {
@@ -48,54 +92,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     initializeAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, currentSession) => {
-      if (mounted) {
-        updateState(currentSession);
-      }
-    });
-
     return () => {
       mounted = false;
-      subscription.unsubscribe();
     };
   }, []);
 
-  const updateState = (currentSession: Session | null) => {
-    setSession(currentSession);
-    
-    if (currentSession?.user) {
-      setUser(currentSession.user);
-      const rawRole =
-        currentSession.user.user_metadata?.role ||
-        currentSession.user.app_metadata?.role ||
-        'customer';
-      const mappedRole = (rawRole === 'provider' || rawRole === 'super_admin' || rawRole === 'admin' || rawRole === 'reseller')
-        ? 'admin'
-        : 'customer';
-      setRole(mappedRole);
-      localStorage.setItem('moovon_user', JSON.stringify(currentSession.user));
-      localStorage.setItem('moovon_role', mappedRole);
-    } else {
-      // Check fallback storage for local development environments
-      const storedUser = localStorage.getItem('moovon_user');
-      const storedRole = localStorage.getItem('moovon_role') as 'admin' | 'customer' | null;
-      if (storedUser && storedRole) {
-        try {
-          setUser(JSON.parse(storedUser));
-          setRole(storedRole);
-        } catch {
-          setUser(null);
-          setRole(null);
-        }
-      } else {
-        setUser(null);
-        setRole(null);
-      }
-    }
-  };
-
-  const setFallbackUser = (userData: any, userRole: 'admin' | 'customer', userSession?: any) => {
-    const storedUserStr = localStorage.getItem('moovon_user');
+  const setFallbackUser = (userData: any, userRole: UserAppRole, userSession?: any) => {
+    const storedUserStr = localStorage.getItem(getStorageKey('user'));
     let mergedUser = userData;
     if (storedUserStr) {
       try {
@@ -106,29 +109,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     setUser(mergedUser);
     setRole(userRole);
-    localStorage.setItem('moovon_user', JSON.stringify(mergedUser));
-    localStorage.setItem('moovon_role', userRole);
+    localStorage.setItem(getStorageKey('user'), JSON.stringify(mergedUser));
+    localStorage.setItem(getStorageKey('role'), userRole ?? 'customer');
     if (userSession) {
-      localStorage.setItem('moovon_session', JSON.stringify(userSession));
+      localStorage.setItem(getStorageKey('session'), JSON.stringify(userSession));
     }
   };
 
   const signOut = async () => {
-    localStorage.removeItem('moovon_user');
-    localStorage.removeItem('moovon_role');
-    localStorage.removeItem('moovon_session');
     try {
-      await supabase.auth.signOut();
+      await axiosInstance.post('/auth/logout');
     } catch (e) {
-      console.warn('Supabase signout warning:', e);
+      console.warn('Logout request failed:', e);
+    } finally {
+      localStorage.removeItem(getStorageKey('user'));
+      localStorage.removeItem(getStorageKey('role'));
+      localStorage.removeItem(getStorageKey('session'));
+      setUser(null);
+      setRole(null);
     }
-    setSession(null);
-    setUser(null);
-    setRole(null);
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, role, isLoading, setFallbackUser, signOut }}>
+    <AuthContext.Provider value={{ user, role, isLoading, setFallbackUser, signOut }}>
       {children}
     </AuthContext.Provider>
   );

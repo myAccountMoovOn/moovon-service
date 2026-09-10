@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, Logger, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, Logger, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -19,6 +19,9 @@ export class AuthService {
   // Custom in-memory cache for 2FA OTPs
   private otpCache = new Map<string, { otp: string, session: any, expiresAt: number }>();
   
+  // Custom in-memory cache for Forgot Password Flow
+  private forgotPasswordCache = new Map<string, { otp: string; expiresAt: number }>();
+
   // Custom in-memory cache for Signup Flow
   private signupCache = new Map<string, { 
     otp: string, 
@@ -26,6 +29,9 @@ export class AuthService {
     type: 'reseller' | 'provider' | 'customer', 
     expiresAt: number 
   }>();
+
+  // Custom in-memory cache for Password Reset
+  private resetCache = new Map<string, { otp: string, userId: string, expiresAt: number }>();
 
   constructor(
     private readonly configService: ConfigService,
@@ -53,7 +59,7 @@ export class AuthService {
     return this.supabaseAdmin;
   }
 
-  async login(email: string, password: string) {
+  async login(email: string, password: string, portal?: string) {
     // 1. Verify the password to get the Supabase session
     const { data, error } = await this.supabaseAnon.auth.signInWithPassword({
       email,
@@ -64,16 +70,37 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    // Get user profile to check role and find companyId
+    const profile = await this.profileRepository.findOne({ where: { id: data.user.id } });
+    const userRole = (
+      profile?.role ||
+      data.user.user_metadata?.role ||
+      data.user.app_metadata?.role ||
+      'customer'
+    ).toString().toLowerCase();
+
+    // Portal isolation check:
+    if (portal === 'main') {
+      // Main domain (localhost:5173/login) is strictly for Super Admin / Admin
+      if (userRole !== 'super_admin' && userRole !== 'admin') {
+        throw new UnauthorizedException('User not exist');
+      }
+    } else if (portal === 'reseller') {
+      if (userRole !== 'reseller') {
+        throw new UnauthorizedException('User not exist');
+      }
+    } else if (portal === 'company') {
+      if (userRole !== 'provider' && userRole !== 'company') {
+        throw new UnauthorizedException('User not exist');
+      }
+    }
+
     // 2. Generate a custom 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
 
-    // 3. Lock the session in memory. We DO NOT sign them out so the session remains valid,
-    // but we DO NOT return it to the frontend either.
+    // 3. Lock the session in memory.
     this.otpCache.set(email, { otp, session: data.session, expiresAt });
-
-    // Get user profile to find companyId
-    const profile = await this.profileRepository.findOne({ where: { id: data.user.id } });
     
     // 4. Send the OTP via Custom SMTP
     await this.sendCustomEmailOtp(email, otp, profile?.companyId);
@@ -134,6 +161,15 @@ export class AuthService {
   }
 
   async registerResellerStep1(dto: import('./dto/auth.dto').RegisterResellerDto) {
+    // Check if user already exists
+    const { data: { users }, error: checkError } = await this.supabaseAdmin.auth.admin.listUsers();
+    if (!checkError && users) {
+      const exists = users.find(u => u.email === dto.email);
+      if (exists) {
+        throw new UnauthorizedException('User with this email already exists.');
+      }
+    }
+
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = Date.now() + 10 * 60 * 1000;
 
@@ -158,6 +194,15 @@ export class AuthService {
         throw new InternalServerErrorException('Invalid Reseller Code');
       }
       resellerId = reseller.id;
+    }
+
+    // Check if user already exists
+    const { data: { users }, error: checkError } = await this.supabaseAdmin.auth.admin.listUsers();
+    if (!checkError && users) {
+      const exists = users.find(u => u.email === dto.email);
+      if (exists) {
+        throw new UnauthorizedException('User with this email already exists.');
+      }
     }
 
     // 1. Generate a custom 6-digit OTP
@@ -247,14 +292,20 @@ export class AuthService {
     }
 
     const session = data.session;
+    const profile = await this.profileRepository.findOne({
+      where: { id: session.user.id },
+      relations: ['company'],
+    });
     const customer = await this.customerRepository.findOne({
       where: { userId: session.user.id },
     });
 
+    const resolvedCompanyName = profile?.company?.name || result.companyName || customer?.companyName || (dto as any)?.companyName || '';
+
     return {
       message: result.message,
       companyCode: result.companyCode,
-      companyName: result.companyName,
+      companyName: resolvedCompanyName,
       session,
       user: {
         id: session.user.id,
@@ -262,11 +313,83 @@ export class AuthService {
         role: type === 'reseller' ? UserRole.RESELLER : (type === 'provider' ? UserRole.PROVIDER : UserRole.CUSTOMER),
         name: customer?.name || dto.name || '',
         phone: customer?.phone || dto.phone || '',
-        companyName: customer?.companyName || '',
+        companyName: resolvedCompanyName,
         address: customer?.address || '',
         gstNumber: customer?.gstNumber || '',
       },
     };
+  }
+
+  async forgotPassword(email: string) {
+    this.logger.log(`Requesting Forgot Password OTP for ${email}`);
+    
+    // Check if user exists in Supabase
+    const { data: { users }, error } = await this.supabaseAdmin.auth.admin.listUsers({
+      page: 1,
+      perPage: 1000,
+    });
+    
+    if (error || !users) {
+      throw new InternalServerErrorException('Error validating account');
+    }
+
+    const user = users.find(u => u.email?.toLowerCase() === email.toLowerCase());
+    if (!user) {
+      throw new NotFoundException('No account found with this email address.');
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+    this.forgotPasswordCache.set(email.toLowerCase(), { otp, expiresAt });
+    this.logger.log(`🔑 [FORGOT PASSWORD OTP] Email: ${email} | Code: ${otp}`);
+
+    await this.sendCustomEmailOtp(email, otp);
+
+    return { message: 'Password reset OTP code sent to your email.' };
+  }
+
+  async resetPassword(dto: import('./dto/auth.dto').ResetPasswordDto) {
+    const emailKey = dto.email.toLowerCase();
+    const cached = this.forgotPasswordCache.get(emailKey);
+
+    if (!cached) {
+      throw new UnauthorizedException('No pending password reset request found for this email.');
+    }
+
+    if (Date.now() > cached.expiresAt) {
+      this.forgotPasswordCache.delete(emailKey);
+      throw new UnauthorizedException('OTP has expired. Please request a new password reset.');
+    }
+
+    if (cached.otp !== dto.token) {
+      throw new UnauthorizedException('Invalid OTP verification code.');
+    }
+
+    // OTP is valid, locate user in Supabase
+    const { data: { users } } = await this.supabaseAdmin.auth.admin.listUsers({
+      page: 1,
+      perPage: 1000,
+    });
+    const user = users?.find(u => u.email?.toLowerCase() === emailKey);
+
+    if (!user) {
+      throw new NotFoundException('User account not found.');
+    }
+
+    const { error: updateError } = await this.supabaseAdmin.auth.admin.updateUserById(
+      user.id,
+      { password: dto.newPassword },
+    );
+
+    if (updateError) {
+      throw new InternalServerErrorException(`Failed to update password: ${updateError.message}`);
+    }
+
+    this.forgotPasswordCache.delete(emailKey);
+    this.logger.log(`🎉 Password reset completed for ${dto.email}`);
+
+    return { message: 'Password reset successfully. You can now login with your new password.' };
   }
 
   // Internal actual registration logic (now private or kept public for testing, but typically only called by verifySignup)
@@ -427,13 +550,74 @@ export class AuthService {
     return { message: 'Password updated successfully' };
   }
 
+  async forgotPasswordStep1(email: string) {
+    // Check if user exists
+    const { data: { users }, error: checkError } = await this.supabaseAdmin.auth.admin.listUsers();
+    if (checkError || !users) {
+      throw new InternalServerErrorException('Failed to check user existence');
+    }
+    const user = users.find(u => u.email === email);
+    if (!user) {
+      // Return success even if not found to prevent email enumeration, or throw error based on preference
+      throw new UnauthorizedException('User with this email not found.');
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = Date.now() + 10 * 60 * 1000;
+
+    this.resetCache.set(email, { otp, userId: user.id, expiresAt });
+
+    try {
+      await this.sendCustomEmailOtp(email, otp);
+    } catch (e: any) {
+      this.resetCache.delete(email);
+      throw new InternalServerErrorException(e.message);
+    }
+
+    return { message: 'Password reset OTP sent to your email.' };
+  }
+
+  async forgotPasswordStep2(dto: import('./dto/auth.dto').ResetPasswordDto) {
+    const cached = this.resetCache.get(dto.email);
+    if (!cached) {
+      throw new UnauthorizedException('No pending password reset request found for this email');
+    }
+
+    if (Date.now() > cached.expiresAt) {
+      this.resetCache.delete(dto.email);
+      throw new UnauthorizedException('OTP has expired. Please request a new password reset.');
+    }
+
+    if (cached.otp !== dto.token) {
+      throw new UnauthorizedException('Invalid OTP code');
+    }
+
+    // Reset the password
+    const { error } = await this.supabaseAdmin.auth.admin.updateUserById(cached.userId, {
+      password: dto.newPassword,
+    });
+
+    if (error) {
+      throw new Error(`Failed to reset password: ${error.message}`);
+    }
+
+    // Clean up cache
+    this.resetCache.delete(dto.email);
+
+    return { message: 'Password has been successfully reset.' };
+  }
+
   async sendCustomEmailOtp(email: string, otp: string, companyId?: string | null) {
     this.logger.log(`Requesting Custom SMTP OTP for ${email}`);
+    this.logger.log(`🔑 [OTP GENERATED] Email: ${email} | Code: ${otp}`);
     
     let host = this.configService.get<string>('SMTP_HOST') || 'smtp.gmail.com';
     let port = parseInt(this.configService.get<string>('SMTP_PORT') || '587', 10);
     let user = this.configService.get<string>('SMTP_USER');
     let pass = this.configService.get<string>('SMTP_PASS');
+    if (pass) {
+      pass = pass.replace(/\s+/g, '');
+    }
     let from = this.configService.get<string>('SMTP_FROM') || `"Moovon Admin" <${user}>`;
     let companyConfig = null;
 
@@ -492,7 +676,7 @@ export class AuthService {
     }
   }
 
-  async verifyOtp(email: string, token: string) {
+  async verifyOtp(email: string, token: string, portal?: string) {
     this.logger.log(`Verifying Custom OTP for ${email}`);
     
     const cached = this.otpCache.get(email);
@@ -516,11 +700,36 @@ export class AuthService {
 
     const profile = await this.profileRepository.findOne({
       where: { id: session.user.id },
+      relations: ['company'],
     });
+
+    const userRole = (
+      profile?.role ||
+      session.user.user_metadata?.role ||
+      session.user.app_metadata?.role ||
+      'customer'
+    ).toString().toLowerCase();
+
+    // Portal isolation check:
+    if (portal === 'main') {
+      if (userRole !== 'super_admin' && userRole !== 'admin') {
+        throw new UnauthorizedException('User not exist');
+      }
+    } else if (portal === 'reseller') {
+      if (userRole !== 'reseller') {
+        throw new UnauthorizedException('User not exist');
+      }
+    } else if (portal === 'company') {
+      if (userRole !== 'provider' && userRole !== 'company') {
+        throw new UnauthorizedException('User not exist');
+      }
+    }
 
     const customer = await this.customerRepository.findOne({
       where: { userId: session.user.id },
     });
+
+    const resolvedCompanyName = profile?.company?.name || customer?.companyName || session.user.user_metadata?.companyName || '';
 
     return {
       session,
@@ -530,7 +739,8 @@ export class AuthService {
         role: profile?.role ?? UserRole.CUSTOMER,
         name: customer?.name || session.user.user_metadata?.name || session.user.user_metadata?.full_name || '',
         phone: customer?.phone || session.user.user_metadata?.phone || '',
-        companyName: customer?.companyName || '',
+        companyName: resolvedCompanyName,
+        companyCode: profile?.company?.code || '',
         address: customer?.address || '',
         gstNumber: customer?.gstNumber || '',
       },
