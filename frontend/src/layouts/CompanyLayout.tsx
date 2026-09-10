@@ -2,22 +2,37 @@ import React, { useState } from 'react';
 import { Layout, Menu, Button, Typography, Dropdown, Drawer, Grid } from 'antd';
 import {
   DashboardOutlined,
+  UsergroupAddOutlined,
   TeamOutlined,
+  ShoppingOutlined,
   AppstoreOutlined,
+  InboxOutlined,
+  ShoppingCartOutlined,
+  DollarOutlined,
+  FileTextOutlined,
+  AuditOutlined,
+  AccountBookOutlined,
+  PayCircleOutlined,
+  FieldTimeOutlined,
   FileSyncOutlined,
-  CreditCardOutlined,
-  NotificationOutlined,
-  BarChartOutlined,
-  LogoutOutlined,
+  ToolOutlined,
+  CarOutlined,
+  DatabaseOutlined,
+  CustomerServiceOutlined,
+  ProjectOutlined,
   UserOutlined,
+  NotificationOutlined,
+  RobotOutlined,
+  FolderOpenOutlined,
+  BarChartOutlined,
+  ClusterOutlined,
+  ApiOutlined,
+  BgColorsOutlined,
+  LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
-  TagsOutlined,
-  GiftOutlined,
-  DollarOutlined,
-  BgColorsOutlined,
-  MessageOutlined,
   BankOutlined,
+  SettingOutlined,
 } from '@ant-design/icons';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -43,19 +58,91 @@ const CompanyLayout: React.FC = () => {
     navigate('/login');
   };
 
+  // Structured Company Sidebar items grouped into sub-menus
   const menuItems = [
-    { key: '/company/dashboard', icon: <DashboardOutlined />, label: 'Enterprise Dashboard' },
-    { key: '/company/categories', icon: <TagsOutlined />, label: 'Categories' },
-    { key: '/company/services', icon: <AppstoreOutlined />, label: 'Products & Services' },
-    { key: '/company/packages', icon: <GiftOutlined />, label: 'Packages' },
-    { key: '/company/coupons', icon: <DollarOutlined />, label: 'Coupons' },
-    { key: '/company/customers', icon: <TeamOutlined />, label: 'Customers & CRM' },
-    { key: '/company/subscriptions', icon: <FileSyncOutlined />, label: 'Subscriptions' },
-    { key: '/company/payments', icon: <CreditCardOutlined />, label: 'Payments & Billing' },
-    { key: '/company/notifications', icon: <NotificationOutlined />, label: 'Notifications' },
-    { key: '/company/templates', icon: <MessageOutlined />, label: 'Templates' },
-    { key: '/company/reports', icon: <BarChartOutlined />, label: 'Reports & Analytics' },
-    { key: '/company/brand-settings', icon: <BgColorsOutlined />, label: 'White-Label Branding' },
+    { key: '/company/dashboard', icon: <DashboardOutlined />, label: 'Dashboard' },
+    
+    {
+      key: 'sub-sales',
+      icon: <ShoppingCartOutlined />,
+      label: 'Sales & CRM',
+      children: [
+        { key: '/company/crm', icon: <UsergroupAddOutlined />, label: 'CRM & Leads' },
+        { key: '/company/customers', icon: <TeamOutlined />, label: 'Customers' },
+        { key: '/company/sales', icon: <DollarOutlined />, label: 'Sales' },
+        { key: '/company/billing', icon: <FileTextOutlined />, label: 'Billing & Invoicing' },
+      ],
+    },
+
+    {
+      key: 'sub-products',
+      icon: <InboxOutlined />,
+      label: 'Products & Inventory',
+      children: [
+        { key: '/company/products', icon: <ShoppingOutlined />, label: 'Products' },
+        { key: '/company/services', icon: <AppstoreOutlined />, label: 'Services' },
+        { key: '/company/inventory', icon: <DatabaseOutlined />, label: 'Inventory' },
+        { key: '/company/purchase', icon: <FileTextOutlined />, label: 'Purchase' },
+      ],
+    },
+
+    {
+      key: 'sub-finance',
+      icon: <AccountBookOutlined />,
+      label: 'Finance & Accounting',
+      children: [
+        { key: '/company/accounts', icon: <AccountBookOutlined />, label: 'Accounts & Ledger' },
+        { key: '/company/gst-tax', icon: <AuditOutlined />, label: 'GST / Tax' },
+        { key: '/company/expenses', icon: <PayCircleOutlined />, label: 'Expenses' },
+      ],
+    },
+
+    {
+      key: 'sub-contracts',
+      icon: <ToolOutlined />,
+      label: 'Contracts & Field Ops',
+      children: [
+        { key: '/company/amc', icon: <FieldTimeOutlined />, label: 'AMC Contracts' },
+        { key: '/company/subscriptions', icon: <FileSyncOutlined />, label: 'Subscriptions' },
+        { key: '/company/service-jobs', icon: <ToolOutlined />, label: 'Service Jobs' },
+        { key: '/company/field-staff', icon: <CarOutlined />, label: 'Field Staff' },
+        { key: '/company/assets', icon: <AppstoreOutlined />, label: 'Assets Management' },
+      ],
+    },
+
+    {
+      key: 'sub-hr',
+      icon: <TeamOutlined />,
+      label: 'HR & Support',
+      children: [
+        { key: '/company/hrms', icon: <UserOutlined />, label: 'HRMS & Payroll' },
+        { key: '/company/support-tickets', icon: <CustomerServiceOutlined />, label: 'Support & Tickets' },
+        { key: '/company/tasks-projects', icon: <ProjectOutlined />, label: 'Tasks & Projects' },
+      ],
+    },
+
+    {
+      key: 'sub-marketing',
+      icon: <NotificationOutlined />,
+      label: 'Marketing & Automation',
+      children: [
+        { key: '/company/marketing', icon: <NotificationOutlined />, label: 'Marketing' },
+        { key: '/company/automation', icon: <RobotOutlined />, label: 'Automation Engine' },
+        { key: '/company/documents', icon: <FolderOpenOutlined />, label: 'Documents' },
+      ],
+    },
+
+    {
+      key: 'sub-settings',
+      icon: <SettingOutlined />,
+      label: 'Analytics & Settings',
+      children: [
+        { key: '/company/reports', icon: <BarChartOutlined />, label: 'Reports & Analytics' },
+        { key: '/company/branches', icon: <ClusterOutlined />, label: 'Branches' },
+        { key: '/company/api-webhooks', icon: <ApiOutlined />, label: 'API & Webhooks' },
+        { key: '/company/brand-settings', icon: <BgColorsOutlined />, label: 'White-Label Branding' },
+      ],
+    },
   ];
 
   const userMenu = {
@@ -63,7 +150,7 @@ const CompanyLayout: React.FC = () => {
       {
         key: 'profile',
         icon: <UserOutlined />,
-        label: 'Company Settings',
+        label: 'Company Profile & Settings',
         onClick: () => navigate('/company/brand-settings'),
       },
       {
@@ -84,21 +171,35 @@ const CompanyLayout: React.FC = () => {
         navigate(key);
         if (isMobile) setDrawerVisible(false);
       }}
-      style={{ borderRight: 0, marginTop: 16 }}
+      style={{ borderRight: 0, marginTop: 12, paddingBottom: 24 }}
     />
   );
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
       {!isMobile ? (
-        <Sider trigger={null} collapsible collapsed={collapsed} theme="light" style={{ borderRight: '1px solid var(--color-border)' }}>
-          <div style={{ height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottom: '1px solid var(--color-border)', gap: 8, padding: '0 8px' }}>
+        <Sider
+          trigger={null}
+          collapsible
+          collapsed={collapsed}
+          theme="light"
+          width={250}
+          style={{
+            borderRight: '1px solid var(--color-border)',
+            overflow: 'auto',
+            height: '100vh',
+            position: 'sticky',
+            top: 0,
+            left: 0,
+          }}
+        >
+          <div style={{ height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottom: '1px solid var(--color-border)', gap: 8, padding: '0 12px' }}>
             {!isLoadingBranding && (
               branding?.logo ? (
                 <>
-                  <img src={branding.logo} alt="Logo" style={{ maxHeight: 36, maxWidth: collapsed ? 36 : 100, objectFit: 'contain', flexShrink: 0 }} />
+                  <img src={branding.logo} alt="Logo" style={{ maxHeight: 36, maxWidth: collapsed ? 36 : 110, objectFit: 'contain', flexShrink: 0 }} />
                   {!collapsed && (
-                    <Title level={5} style={{ margin: 0, color: '#1468E8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 100 }}>
+                    <Title level={5} style={{ margin: 0, color: '#1468E8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 110 }}>
                       {branding?.appName || branding?.name || 'Company Hub'}
                     </Title>
                   )}
@@ -137,7 +238,7 @@ const CompanyLayout: React.FC = () => {
         </Drawer>
       )}
       <Layout>
-        <Header style={{ padding: '0 24px', background: 'var(--color-bg-primary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border)' }}>
+        <Header style={{ padding: '0 24px', background: 'var(--color-bg-primary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border)', sticky: 'top', zIndex: 100 }}>
           <Button
             type="text"
             icon={isMobile ? <MenuUnfoldOutlined /> : (collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />)}

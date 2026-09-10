@@ -118,7 +118,7 @@ const Customers: React.FC = () => {
       ),
     },
     {
-      title: 'Company',
+      title: 'Department / Category',
       dataIndex: 'companyName',
       responsive: ['lg' as const],
       render: (text: string) => text || '-',
@@ -447,8 +447,8 @@ const Customers: React.FC = () => {
                         <Text strong>{selectedCustomer.email}</Text>
                     </Flex>
                     <Flex justify="space-between">
-                        <Text type="secondary">Company Name</Text>
-                        <Text strong>{selectedCustomer.companyName || 'Individual'}</Text>
+                        <Text type="secondary">Department / Category</Text>
+                        <Text strong>{selectedCustomer.companyName || '-'}</Text>
                     </Flex>
                     <Flex justify="space-between">
                         <Text type="secondary">Joined On</Text>
@@ -560,8 +560,8 @@ const Customers: React.FC = () => {
           <Form.Item name="phone" label="Phone Number" rules={[{ required: true }]}>
             <Input placeholder="+91 9876543210" />
           </Form.Item>
-          <Form.Item name="companyName" label="Company Name (Optional)">
-            <Input placeholder="Acme Corp" />
+          <Form.Item name="companyName" label="Department / Category (Optional)">
+            <Input placeholder="e.g., Electronics / IT Dept" />
           </Form.Item>
           <Form.Item name="address" label="Address">
             <Input.TextArea placeholder="123 Street, City" />

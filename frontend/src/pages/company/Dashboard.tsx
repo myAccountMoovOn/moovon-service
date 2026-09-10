@@ -20,15 +20,15 @@ export const CompanyDashboard: React.FC = () => {
   const { user } = useAuth();
 
   const recentTransactions = [
-    { id: '1', client: 'Acme Software Ltd', service: 'CRM Platform Plan', amount: '₹ 24,999', status: 'PAID', date: '2026-09-09' },
-    { id: '2', client: 'Apex Digital Agency', service: 'Invoicing Module', amount: '₹ 14,500', status: 'PAID', date: '2026-09-08' },
-    { id: '3', client: 'Global Logistics Inc', service: 'HR & Payroll Pro', amount: '₹ 38,000', status: 'PENDING', date: '2026-09-07' },
-    { id: '4', client: 'TechCorp Solutions', service: 'Enterprise Suite', amount: '₹ 59,999', status: 'PAID', date: '2026-09-05' },
+    { id: '1', client: 'Rahul Sharma', service: 'Annual Maintenance Contract', amount: '₹ 4,999', status: 'PAID', date: '2026-09-09' },
+    { id: '2', client: 'Priya Desai', service: 'Premium Installation Service', amount: '₹ 1,500', status: 'PAID', date: '2026-09-08' },
+    { id: '3', client: 'Sunshine Retail Pvt Ltd', service: 'Bulk Office Supplies', amount: '₹ 38,000', status: 'PENDING', date: '2026-09-07' },
+    { id: '4', client: 'Amit Patel', service: 'Home Router Setup', amount: '₹ 999', status: 'PAID', date: '2026-09-05' },
   ];
 
   const columns = [
-    { title: 'Client / Company', dataIndex: 'client', key: 'client', render: (val: string) => <Text strong>{val}</Text> },
-    { title: 'Service Plan', dataIndex: 'service', key: 'service' },
+    { title: 'Customer Name', dataIndex: 'client', key: 'client', render: (val: string) => <Text strong>{val}</Text> },
+    { title: 'Product / Service', dataIndex: 'service', key: 'service' },
     { title: 'Amount', dataIndex: 'amount', key: 'amount', render: (val: string) => <Text strong style={{ color: '#0F172A' }}>{val}</Text> },
     {
       title: 'Status',
